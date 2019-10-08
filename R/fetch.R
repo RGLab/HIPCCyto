@@ -17,7 +17,7 @@ fetch_files <- function(study, output_dir = ".") {
   dirs <- dirs[grep("cytometry|cyto", dirs$basename, ignore.case = TRUE), ]
 
   # fetch ResultFiles directory
-  output_path_resultFiles <- file.path(output_path, study)
+  output_path_resultFiles <- file.path(output_path, "ResultFiles")
   dir.create(output_path_resultFiles)
   lapply(dirs$path, function(x) download_immport(x, output_path_resultFiles))
 
