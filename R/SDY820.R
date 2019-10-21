@@ -3,6 +3,7 @@ process_SDY820 <- function(input_dir) {
   files <- ImmPortR::query_filePath("SDY820")
   files <- files[files$fileDetail == "Flow cytometry result", ]
   files$filePath <- file.path(input_dir, gsub("/SDY820/", "", files$filePath))
+  rownames(files) <- files$fileName
   map <- data.frame(
     alias = c("APC-eFluor 780-A", "eFluor 450-A"),
     channels = c("APC-eFluor780-A", "eFluor450-A")
@@ -14,18 +15,17 @@ process_SDY820 <- function(input_dir) {
   )
 
   # merge metadata
-  data.table::setDT(files, fileName)
-  ncdfFlow::phenoData(nc)$participant_id <- files[ncdfFlow::phenoData(nc)$name, subjectAccession]
-  ncdfFlow::phenoData(nc)$age_reported <- files[ncdfFlow::phenoData(nc)$name, ageEvent]
-  ncdfFlow::phenoData(nc)$gender <- files[ncdfFlow::phenoData(nc)$name, gender]
-  ncdfFlow::phenoData(nc)$race <- files[ncdfFlow::phenoData(nc)$name, race]
-  ncdfFlow::phenoData(nc)$study_time_collected <- files[ncdfFlow::phenoData(nc)$name, studyTimeCollected]
-  ncdfFlow::phenoData(nc)$study_time_collected_unit <- files[ncdfFlow::phenoData(nc)$name, studyTimeCollectedUnit]
-  ncdfFlow::phenoData(nc)$file_info_name <- files[ncdfFlow::phenoData(nc)$name, fileName]
-  ncdfFlow::phenoData(nc)$description <- files[ncdfFlow::phenoData(nc)$name, fileDetail]
-  ncdfFlow::phenoData(nc)$type <- files[ncdfFlow::phenoData(nc)$name, biosampleType]
-  ncdfFlow::phenoData(nc)$subtype <- files[ncdfFlow::phenoData(nc)$name, biosampleSubtype]
-  ncdfFlow::phenoData(nc)$cohort <- files[ncdfFlow::phenoData(nc)$name, armName]
+  ncdfFlow::phenoData(nc)$participant_id <- files[ncdfFlow::phenoData(nc)$name, ]$subjectAccession
+  ncdfFlow::phenoData(nc)$age_reported <- files[ncdfFlow::phenoData(nc)$name, ]$ageEvent
+  ncdfFlow::phenoData(nc)$gender <- files[ncdfFlow::phenoData(nc)$name, ]$gender
+  ncdfFlow::phenoData(nc)$race <- files[ncdfFlow::phenoData(nc)$name, ]$race
+  ncdfFlow::phenoData(nc)$study_time_collected <- files[ncdfFlow::phenoData(nc)$name, ]$studyTimeCollected
+  ncdfFlow::phenoData(nc)$study_time_collected_unit <- files[ncdfFlow::phenoData(nc)$name, ]$studyTimeCollectedUnit
+  ncdfFlow::phenoData(nc)$file_info_name <- files[ncdfFlow::phenoData(nc)$name, ]$fileName
+  ncdfFlow::phenoData(nc)$description <- files[ncdfFlow::phenoData(nc)$name, ]$fileDetail
+  ncdfFlow::phenoData(nc)$type <- files[ncdfFlow::phenoData(nc)$name, ]$biosampleType
+  ncdfFlow::phenoData(nc)$subtype <- files[ncdfFlow::phenoData(nc)$name, ]$biosampleSubtype
+  ncdfFlow::phenoData(nc)$cohort <- files[ncdfFlow::phenoData(nc)$name, ]$armName
 
   # merge acquired date (to examine batches)
   # there are two batches, but don't correspond with either cohort or study time collected
