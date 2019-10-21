@@ -12,5 +12,9 @@ Encoding: UTF-8
 LazyData: true
 Imports: 
     ImmPortR,
+    flowCore,
+    ncdfFlow,
+    flowWorkspace,
+    openCyto,
     assertthat
 RoxygenNote: 6.1.1
