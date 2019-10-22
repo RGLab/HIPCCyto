@@ -64,7 +64,5 @@ process_SDY820 <- function(input_dir) {
   openCyto::add_pop(gs = gs, alias = "SCSSC", pop = "+", parent = "SCFSC", dims = "SSC-A,SSC-H", gating_method = "singletGate", gating_args = "prediction_level = 0.99, maxit = 100", mc.cores = parallel::detectCores(), parallel_type = "multicore")
   openCyto::add_pop(gs = gs, alias = "Live", pop = "-", parent = "SCSSC", dims = "V500-A", gating_method = "mindensity", collapseDataForGating = TRUE, groupBy = "acquired_date", mc.cores = parallel::detectCores(), parallel_type = "multicore")
 
-  # save gating set
-  output_dir <- file.path(input_dir, "gs")
-  flowWorkspace::save_gs(gs, output_dir)
+  gs
 }
