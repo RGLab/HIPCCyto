@@ -7,7 +7,7 @@ assert params.password, 'Please specify ImmPort Password with --password'
 params.outputDir = 'gs'
 
 process hipcCyto {
-  container = 'hipccyto:latest'
+  container = 'juyeongkim/hipccyto:latest'
 
   echo true
 
@@ -25,9 +25,8 @@ process hipcCyto {
   publishDir "${inputPath}", mode: 'copy', overwrite: true
 
   """
-  #!/usr/local/bin/Rscript
-  Sys.setenv(ImmPortUsername = "${username}")
-  Sys.setenv(ImmPortPassword = "${password}")
-  HIPCCyto:::process_study("${study}", "${inputDir}", "${outputDir}")
+  export ImmPortUsername=${username}
+  export ImmPortPassword=${password}
+  Rscript -e 'HIPCCyto:::process_study("${study}", "${inputDir}", "${outputDir}")'
   """
 }
