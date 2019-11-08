@@ -54,8 +54,8 @@ summarize_study <- function(study, input_dir) {
   panels <- sapply(headers, function(x) {
     header <- x[[1]]
     par <- as.integer(header["$PAR"])
-    PNS <- unname(header[paste0("$P", seq_len(par), "S")])
     PNN <- unname(header[paste0("$P", seq_len(par), "N")])
+    PNS <- unname(header[paste0("$P", seq_len(par), "S")])
 
     if (!is.null(map)) {
       for (i in seq_len(nrow(map))) {
@@ -64,6 +64,8 @@ summarize_study <- function(study, input_dir) {
     }
 
     # TODO: standardize marker names too
+    marker_exist <- !is.na(PNS) & PNS %in% names(MARKERS)
+    PNS[marker_exist] <- MARKERS[PNS[marker_exist]]
 
     PNN <- PNN[!is.na(PNS)]
     PNS <- PNS[!is.na(PNS)]
@@ -135,12 +137,21 @@ merge_batch <- function(nc, study) {
 }
 
 #' @importFrom flowWorkspace markernames
-standardize_markernames <- function(gs, study) {
+standardize_markernames <- function(gs) {
   message("Standardizing marker names...")
-  markers <- DATA[[study]]$markers
-  if (!is.null(markers)) {
-    markernames(gs) <- DATA[[study]]$markers
-  }
+
+  # get current marker names and name them with channel names
+  names_gs <- markernames(gs)
+  names(names_gs) <- colnames2(gs)
+
+  # retrieve standard marker names from MARKERS
+  marker_exist <- names_gs %in% names(MARKERS)
+  standards <- MARKERS[names_gs[marker_exist]]
+  names_gs[marker_exist] <- standards
+
+  # assign the fixed marker names
+  message(paste(paste(names(standards), standards, sep = " -> "), collapse = "\n"))
+  markernames(gs) <- names_gs
 
   gs
 }
@@ -166,7 +177,7 @@ compensate_gs <- function(gs) {
 #' @importFrom flowCore estimateLogicle
 transform_gs <- function(gs) {
   message("Applying transformation...")
-  channels <- grep("SC-|Time", colnames(gs), invert = TRUE, value = TRUE)
+  channels <- colnames2(gs)
   trans <- estimateLogicle(gs[[1]], channels)
 
   transform(gs, trans)
@@ -184,4 +195,9 @@ gate_gs <- function(gs, study) {
   }
 
   gs
+}
+
+
+colnames2 <- function(gs) {
+  grep("SC-|Time", colnames(gs), invert = TRUE, value = TRUE)
 }
