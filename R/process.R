@@ -20,10 +20,11 @@ process_study <- function(study, input_dir) {
     nc <- merge_batch(nc, study)
 
     # create a gating set
+    message("Creating a gating set...")
     gs <- GatingSet(nc)
 
     # pre-process
-    gs <- standardize_markernames(gs, study)
+    gs <- standardize_markernames(gs)
     gs <- compensate_gs(gs)
     gs <- transform_gs(gs)
 
@@ -99,7 +100,7 @@ create_nc <- function(filePath, study) {
   )
 }
 
-#' @importFrom ncdfFlow phenoData
+#' @importFrom ncdfFlow phenoData phenoData<-
 merge_metadata <- function(nc, files) {
   message("Merging metedata...")
   phenoData(nc)$participant_id <- files[phenoData(nc)$name, ]$subjectAccession
@@ -136,7 +137,7 @@ merge_batch <- function(nc, study) {
   nc
 }
 
-#' @importFrom flowWorkspace markernames
+#' @importFrom flowWorkspace markernames markernames<-
 standardize_markernames <- function(gs) {
   message("Standardizing marker names...")
 

@@ -10,7 +10,7 @@ DATA <- list(
 )
 
 
-headers <- labkey.selectRows(
+headers <- Rlabkey::labkey.selectRows(
   baseUrl = "https://www.immunespace.org",
   folderPath = "/Studies",
   schemaName = "immport",
@@ -24,5 +24,4 @@ names(MARKERS) <- headers$pns_reported
 warning(which(table(headers$pns_reported) > 1))
 
 
-usethis::use_data(DATA, overwrite = TRUE)
-usethis::use_data(MARKERS, overwrite = TRUE)
+usethis::use_data(DATA, MARKERS, overwrite = TRUE, internal = TRUE)
