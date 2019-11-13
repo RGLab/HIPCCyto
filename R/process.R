@@ -58,13 +58,14 @@ summarize_study <- function(study, input_dir) {
     PNN <- unname(header[paste0("$P", seq_len(par), "N")])
     PNS <- unname(header[paste0("$P", seq_len(par), "S")])
 
+    # standardize channel names
     if (!is.null(map)) {
       for (i in seq_len(nrow(map))) {
         PNN <- gsub(map$channels[i], map$alias[i], PNN)
       }
     }
 
-    # TODO: standardize marker names too
+    # standardize marker names
     marker_exist <- !is.na(PNS) & PNS %in% names(MARKERS)
     PNS[marker_exist] <- MARKERS[PNS[marker_exist]]
 
@@ -198,7 +199,12 @@ gate_gs <- function(gs, study) {
   gs
 }
 
-
+#' @importFrom flowCore parameters
 colnames2 <- function(gs) {
-  grep("SC-|Time", colnames(gs), invert = TRUE, value = TRUE)
+  # grep("SC-|Time", colnames(gs), invert = TRUE, value = TRUE) # can't use this for now
+
+  channels <- parameters(getData(gs)[[1]])@data$name
+  markers <- parameters(getData(gs)[[1]])@data$desc
+
+  unname(channels[!is.na(markers)])
 }
