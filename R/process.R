@@ -4,7 +4,7 @@ process_study <- function(study, input_dir) {
   # summariz files
   files <- summarize_study(study, input_dir)
 
-  message("Creating gating set for each panel...")
+  message(">> Creating gating set for each panel...")
   gsl <- lapply(unique(files$panel), function(panel) {
     message(panel)
 
@@ -20,7 +20,7 @@ process_study <- function(study, input_dir) {
     nc <- merge_batch(nc, study)
 
     # create a gating set
-    message("Creating a gating set...")
+    message(">> Creating a gating set...")
     gs <- GatingSet(nc)
 
     # pre-process
@@ -50,7 +50,7 @@ summarize_study <- function(study, input_dir) {
   # summarize files and
   # read headers and summarize panels
   map <- DATA[[study]]$map
-  message("Reading in fcs headers...")
+  message(">> Reading in fcs headers...")
   headers <- lapply(files$filePath, function(file) read.FCSheader(file, channel_alias = map))
   panels <- sapply(headers, function(x) {
     header <- x[[1]]
@@ -80,7 +80,7 @@ summarize_study <- function(study, input_dir) {
 
   # how many gating sets will be created
   # by panels, sample type, measurement technique, experiment accession
-  message(sprintf("There are %s panel(s)...", length(ps)))
+  message(sprintf(">> There are %s panel(s)...", length(ps)))
   x <- lapply(strsplit(ps, "; "), function(x) {
     message(paste(gsub(" \\S+", "", x), collapse = " "))
   })
@@ -91,19 +91,19 @@ summarize_study <- function(study, input_dir) {
 #' @importFrom ncdfFlow read.ncdfFlowSet
 #' @importFrom parallel detectCores
 create_nc <- function(filePath, study) {
-  message("Reading files and creating a flow set...")
+  message(">> Reading files and creating a flow set...")
   map <- DATA[[study]]$map
 
-  read.ncdfFlowSet(
+  suppressMessages(read.ncdfFlowSet(
     filePath,
     channel_alias = map,
     mc.cores = detectCores()
-  )
+  ))
 }
 
 #' @importFrom ncdfFlow phenoData phenoData<-
 merge_metadata <- function(nc, files) {
-  message("Merging metedata...")
+  message(">> Merging metedata...")
   phenoData(nc)$participant_id <- files[phenoData(nc)$name, ]$subjectAccession
   phenoData(nc)$age_reported <- files[phenoData(nc)$name, ]$ageEvent
   phenoData(nc)$gender <- files[phenoData(nc)$name, ]$gender
@@ -121,7 +121,7 @@ merge_metadata <- function(nc, files) {
 
 #' @importFrom flowCore fsApply description
 merge_batch <- function(nc, study) {
-  message("Merging batch column...")
+  message(">> Merging batch column...")
   keyword <- DATA[[study]]$batch
 
   if (!is.null(keyword)) {
@@ -140,7 +140,7 @@ merge_batch <- function(nc, study) {
 
 #' @importFrom flowWorkspace markernames markernames<-
 standardize_markernames <- function(gs) {
-  message("Standardizing marker names...")
+  message(">> Standardizing marker names...")
 
   # get current marker names and name them with channel names
   names_gs <- markernames(gs)
@@ -162,7 +162,7 @@ standardize_markernames <- function(gs) {
 #' @importFrom flowWorkspace getData compensate
 #' @importFrom flowCore spillover
 compensate_gs <- function(gs) {
-  message("Applying compensation...")
+  message(">> Applying compensation...")
   nc <- getData(gs)
   cols <- colnames(gs)
   comp <- fsApply(nc, function(x) {
@@ -179,7 +179,7 @@ compensate_gs <- function(gs) {
 #' @importFrom flowWorkspace colnames transform
 #' @importFrom flowCore estimateLogicle
 transform_gs <- function(gs) {
-  message("Applying transformation...")
+  message(">> Applying transformation...")
   channels <- colnames2(gs)
   trans <- estimateLogicle(gs[[1]], channels)
 
@@ -188,7 +188,7 @@ transform_gs <- function(gs) {
 
 #' @importFrom openCyto gatingTemplate gating
 gate_gs <- function(gs, study) {
-  message("Gating...")
+  message(">> Gating...")
   filePath <- sprintf("extdata/gating_template/%s.csv", study)
   file <- system.file(filePath, package = "HIPCCyto")
 
