@@ -1,38 +1,40 @@
-#' @importFrom flowWorkspace GatingSet
 #' @export
 process_study <- function(study, input_dir) {
-  # summariz files
+  # summarize files
   files <- summarize_study(study, input_dir)
+  files_by_panel <- split(files, files$panel)
 
   message(">> Creating gating set for each panel...")
-  gsl <- lapply(unique(files$panel), function(panel) {
-    message(panel)
+  lapply(files_by_panel, process_panel)
+}
 
-    # load files
-    nc <- create_nc(files$filePath[files$panel == panel], study)
 
-    # merge metadata
-    nc <- merge_metadata(nc, files)
+process_panel <- function(files) {
+  study <- unique(files$studyAccession)
+  panel <- unique(files$panel)
+  stopifnot(length(study) == 1, length(panel) == 1)
 
-    # merge acquired date (to examine batches)
-    # there are two batches, but don't correspond with either cohort or
-    # study_time_collected
-    nc <- merge_batch(nc, study)
+  message(paste(strsplit(panel, split = "; ")[[1]], collapse = "\n"))
 
-    # create a gating set
-    message(">> Creating a gating set...")
-    gs <- GatingSet(nc)
+  # load files
+  nc <- create_nc(files$filePath, study)
 
-    # pre-process
-    gs <- standardize_markernames(gs)
-    gs <- compensate_gs(gs)
-    gs <- transform_gs(gs)
+  # merge metadata
+  nc <- merge_metadata(nc, files, study)
 
-    # gate
-    gate_gs(gs, study)
-  })
+  # merge batch information
+  nc <- merge_batch(nc, study)
 
-  gsl
+  # create a gating set
+  gs <- create_gs(nc, study)
+
+  # pre-process
+  gs <- standardize_markernames(gs, study)
+  gs <- compensate_gs(gs, study)
+  gs <- transform_gs(gs, study)
+
+  # gate
+  gate_gs(gs, study)
 }
 
 
@@ -88,6 +90,7 @@ summarize_study <- function(study, input_dir) {
   files
 }
 
+
 #' @importFrom ncdfFlow read.ncdfFlowSet
 #' @importFrom parallel detectCores
 create_nc <- function(filePath, study) {
@@ -102,7 +105,7 @@ create_nc <- function(filePath, study) {
 }
 
 #' @importFrom ncdfFlow phenoData phenoData<-
-merge_metadata <- function(nc, files) {
+merge_metadata <- function(nc, files, study) {
   message(">> Merging metedata...")
   phenoData(nc)$participant_id <- files[phenoData(nc)$name, ]$subjectAccession
   phenoData(nc)$age_reported <- files[phenoData(nc)$name, ]$ageEvent
@@ -138,8 +141,14 @@ merge_batch <- function(nc, study) {
   nc
 }
 
+#' @importFrom flowWorkspace GatingSet
+create_gs <- function(nc, study) {
+  message(">> Creating a gating set...")
+  GatingSet(nc)
+}
+
 #' @importFrom flowWorkspace markernames markernames<-
-standardize_markernames <- function(gs) {
+standardize_markernames <- function(gs, study) {
   message(">> Standardizing marker names...")
 
   # get current marker names and name them with channel names
@@ -161,7 +170,7 @@ standardize_markernames <- function(gs) {
 
 #' @importFrom flowWorkspace getData compensate
 #' @importFrom flowCore spillover
-compensate_gs <- function(gs) {
+compensate_gs <- function(gs, study) {
   message(">> Applying compensation...")
   nc <- getData(gs)
   cols <- colnames(gs)
@@ -178,7 +187,7 @@ compensate_gs <- function(gs) {
 # transform fluoresence channels with biexponential transformation
 #' @importFrom flowWorkspace colnames transform
 #' @importFrom flowCore estimateLogicle
-transform_gs <- function(gs) {
+transform_gs <- function(gs, study) {
   message(">> Applying transformation...")
   channels <- colnames2(gs)
   trans <- estimateLogicle(gs[[1]], channels)

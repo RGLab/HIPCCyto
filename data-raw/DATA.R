@@ -5,6 +5,9 @@ DATA <- list(
       alias = c("APC-eFluor 780-A", "eFluor 450-A"),
       channels = c("APC-eFluor780-A", "eFluor450-A")
     ),
+    # acquired date (to examine batches)
+    # there are two batches, but don't correspond with either cohort or
+    # study_time_collected
     batch = "CST SETUP DATE"
   )
 )
