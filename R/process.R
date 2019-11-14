@@ -152,6 +152,7 @@ standardize_markernames <- function(gs) {
   names_gs[marker_exist] <- standards
 
   # assign the fixed marker names
+  standards <- standards[standards != names(standards)]
   message(paste(paste(names(standards), standards, sep = " -> "), collapse = "\n"))
   markernames(gs) <- names_gs
 
