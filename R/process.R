@@ -1,45 +1,17 @@
 #' @export
-process_study <- function(study, input_dir) {
+process_study <- function(study, input_dir, debug_dir = NULL) {
   # summarize files
   files <- summarize_study(study, input_dir)
   files_by_panel <- split(files, files$panel)
 
-  message(">> Creating gating set for each panel...")
-  lapply(files_by_panel, process_panel)
-}
-
-
-process_panel <- function(files) {
-  study <- unique(files$studyAccession)
-  panel <- unique(files$panel)
-  stopifnot(length(study) == 1, length(panel) == 1)
-
-  message(paste(strsplit(panel, split = "; ")[[1]], collapse = "\n"))
-
-  # load files
-  nc <- create_nc(files$filePath, study)
-
-  # merge metadata
-  nc <- merge_metadata(nc, files, study)
-
-  # merge batch information
-  nc <- merge_batch(nc, study)
-
-  # create a gating set
-  gs <- create_gs(nc, study)
-
-  # pre-process
-  gs <- standardize_markernames(gs, study)
-  gs <- compensate_gs(gs, study)
-  gs <- transform_gs(gs, study)
-
-  # gate
-  gate_gs(gs, study)
+  # create gating set for each panel
+  lapply(files_by_panel, process_panel, debug_dir = debug_dir)
 }
 
 
 #' @importFrom ImmPortR query_filePath
 #' @importFrom flowCore read.FCSheader
+#' @importFrom gtools mixedsort
 summarize_study <- function(study, input_dir) {
   files <- query_filePath(study)
   files <- files[files$fileDetail == "Flow cytometry result", ]
@@ -47,9 +19,14 @@ summarize_study <- function(study, input_dir) {
   rownames(files) <- files$fileName
 
   # check if files exist. If not, throw warning and fetch them
-  file.exists(files$filePath)
+  fcs_exist <- file.exists(files$filePath)
+  if (any(!fcs_exist)) {
+    stop("These fcs files do not exist at ", input_dir, "\n", paste(files[!fcs_exist, "fileName"], collapse = "\n"))
+  }
 
-  # summarize files and
+  # summarize files
+  message(sprintf(">> There are %s fcs files in %s...", nrow(files), study))
+
   # read headers and summarize panels
   map <- DATA[[study]]$map
   message(">> Reading in fcs headers...")
@@ -74,7 +51,7 @@ summarize_study <- function(study, input_dir) {
     PNN <- PNN[!is.na(PNS)]
     PNS <- PNS[!is.na(PNS)]
 
-    paste(gtools::mixedsort(paste0(PNS, " (", PNN, ")")), collapse = "; ")
+    paste(mixedsort(paste0(PNS, " (", PNN, ")")), collapse = "; ")
   })
 
   files$panel <- panels
@@ -91,21 +68,56 @@ summarize_study <- function(study, input_dir) {
 }
 
 
+process_panel <- function(files, debug_dir = NULL) {
+  study <- unique(files$studyAccession)
+  panel <- unique(files$panel)
+  stopifnot(length(study) == 1, length(panel) == 1)
+
+  message(paste(rep("=", times = 80), collapse = ""))
+  message(sprintf(">> Processing %s fcs files for this panel...", nrow(files)))
+  message(paste(strsplit(panel, split = "; ")[[1]], collapse = "\n"))
+
+  # load files
+  nc <- create_nc(files$filePath, study, debug_dir)
+
+  # merge metadata
+  nc <- merge_metadata(nc, files, study, debug_dir)
+
+  # merge batch information
+  nc <- merge_batch(nc, study, debug_dir)
+
+  # create a gating set
+  gs <- create_gs(nc, study, debug_dir)
+
+  # pre-process
+  gs <- standardize_markernames(gs, study, debug_dir)
+  gs <- compensate_gs(gs, study, debug_dir)
+  gs <- transform_gs(gs, study, debug_dir)
+
+  # gate
+  gate_gs(gs, study, debug_dir)
+}
+
+
 #' @importFrom ncdfFlow read.ncdfFlowSet
 #' @importFrom parallel detectCores
-create_nc <- function(filePath, study) {
+create_nc <- function(filePath, study, debug_dir = NULL) {
   message(">> Reading files and creating a flow set...")
   map <- DATA[[study]]$map
 
-  suppressMessages(read.ncdfFlowSet(
+  nc <- suppressMessages(read.ncdfFlowSet(
     filePath,
     channel_alias = map,
     mc.cores = detectCores()
   ))
+
+  save_debug(nc, "create_nc", debug_dir)
+
+  nc
 }
 
 #' @importFrom ncdfFlow phenoData phenoData<-
-merge_metadata <- function(nc, files, study) {
+merge_metadata <- function(nc, files, study, debug_dir = NULL) {
   message(">> Merging metedata...")
   phenoData(nc)$participant_id <- files[phenoData(nc)$name, ]$subjectAccession
   phenoData(nc)$age_reported <- files[phenoData(nc)$name, ]$ageEvent
@@ -119,11 +131,13 @@ merge_metadata <- function(nc, files, study) {
   phenoData(nc)$subtype <- files[phenoData(nc)$name, ]$biosampleSubtype
   phenoData(nc)$cohort <- files[phenoData(nc)$name, ]$armName
 
+  save_debug(nc, "merge_metadata", debug_dir)
+
   nc
 }
 
 #' @importFrom flowCore fsApply description
-merge_batch <- function(nc, study) {
+merge_batch <- function(nc, study, debug_dir = NULL) {
   message(">> Merging batch column...")
   keyword <- DATA[[study]]$batch
 
@@ -138,17 +152,23 @@ merge_batch <- function(nc, study) {
     )
   }
 
+  save_debug(nc, "merge_batch", debug_dir)
+
   nc
 }
 
 #' @importFrom flowWorkspace GatingSet
-create_gs <- function(nc, study) {
+create_gs <- function(nc, study, debug_dir = NULL) {
   message(">> Creating a gating set...")
-  GatingSet(nc)
+  gs <- GatingSet(nc)
+
+  save_debug(gs, "create_gs", debug_dir)
+
+  gs
 }
 
 #' @importFrom flowWorkspace markernames markernames<-
-standardize_markernames <- function(gs, study) {
+standardize_markernames <- function(gs, study, debug_dir = NULL) {
   message(">> Standardizing marker names...")
 
   # get current marker names and name them with channel names
@@ -165,12 +185,14 @@ standardize_markernames <- function(gs, study) {
   message(paste(paste(names(standards), standards, sep = " -> "), collapse = "\n"))
   markernames(gs) <- names_gs
 
+  save_debug(gs, "standardize_markernames", debug_dir)
+
   gs
 }
 
 #' @importFrom flowWorkspace getData compensate
 #' @importFrom flowCore spillover
-compensate_gs <- function(gs, study) {
+compensate_gs <- function(gs, study, debug_dir = NULL) {
   message(">> Applying compensation...")
   nc <- getData(gs)
   cols <- colnames(gs)
@@ -181,32 +203,63 @@ compensate_gs <- function(gs, study) {
     spill[keep, keep] # remove extra channels
   }, simplify = FALSE)
 
-  compensate(gs, comp)
+  gs <- compensate(gs, comp)
+
+  save_debug(gs, "compensate_gs", debug_dir)
+
+  gs
 }
 
 # transform fluoresence channels with biexponential transformation
 #' @importFrom flowWorkspace colnames transform
 #' @importFrom flowCore estimateLogicle
-transform_gs <- function(gs, study) {
+transform_gs <- function(gs, study, debug_dir = NULL) {
   message(">> Applying transformation...")
   channels <- colnames2(gs)
   trans <- estimateLogicle(gs[[1]], channels)
 
-  transform(gs, trans)
+  gs <- transform(gs, trans)
+
+  save_debug(gs, "transform_gs", debug_dir)
+
+  gs
 }
 
 #' @importFrom openCyto gatingTemplate gating
-gate_gs <- function(gs, study) {
-  message(">> Gating...")
+gate_gs <- function(gs, study, debug_dir = NULL) {
   filePath <- sprintf("extdata/gating_template/%s.csv", study)
   file <- system.file(filePath, package = "HIPCCyto")
 
   if (file != "") {
+    message(sprintf(">> Applying gating template (%s)...", file))
     gt <- gatingTemplate(file)
     gating(gt, gs, mc.cores = detectCores(), parallel_type = "multicore")
   }
 
+  save_debug(gs, "gate_gs", debug_dir)
+
   gs
+}
+
+
+# HELPER FUNCTIONS -------------------------------------------------------------
+
+#' @importFrom ncdfFlow getFileName save_ncfs
+#' @importFrom flowWorkspace save_gs
+save_debug <- function(obj, func, debug_dir = NULL) {
+  if (!is.null(debug_dir)) {
+    if (is(obj, "ncdfFlowSet")) {
+      path <- file.path(debug_dir, paste0(func, "_", basename(getFileName(obj))))
+      save_ncfs(obj, path, cdf = "copy")
+    } else if (is(obj, "GatingSet")) {
+      path <- file.path(debug_dir, paste0(func, "_", basename(getFileName(getData(obj)))))
+      save_gs(obj, path, cdf = "copy")
+    } else {
+      path <- tempfile(paste0(func, "_"), debug_dir, ".RDS")
+      saveRDS(obj, path)
+    }
+    message(sprintf(">> Storing intermediate file to %s for debugging...", path))
+  }
 }
 
 #' @importFrom flowCore parameters
