@@ -60,9 +60,10 @@ summarize_study <- function(study, input_dir) {
   # how many gating sets will be created
   # by panels, sample type, measurement technique, experiment accession
   message(sprintf(">> There are %s panel(s)...", length(ps)))
-  x <- lapply(strsplit(ps, "; "), function(x) {
-    message(paste(gsub(" \\S+", "", x), collapse = " "))
+  panels_clean <- sapply(strsplit(ps, "; "), function(x) {
+    paste(gsub(" \\S+", "", x), collapse = " ")
   })
+  message(paste(mixedsort(panels_clean), collapse = "\n"))
 
   files
 }
