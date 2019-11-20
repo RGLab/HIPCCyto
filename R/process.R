@@ -249,17 +249,15 @@ gate_gs <- function(gs, study, debug_dir = NULL) {
 #' @importFrom flowWorkspace save_gs
 save_debug <- function(obj, func, debug_dir = NULL) {
   if (!is.null(debug_dir)) {
+    path <- tempfile(paste0(func, "_"), debug_dir)
+    message(sprintf(">> Storing intermediate file to %s for debugging...", path))
     if (is(obj, "ncdfFlowSet")) {
-      path <- file.path(debug_dir, paste0(func, "_", basename(getFileName(obj))))
       save_ncfs(obj, path, cdf = "copy")
     } else if (is(obj, "GatingSet")) {
-      path <- file.path(debug_dir, paste0(func, "_", basename(getFileName(getData(obj)))))
       save_gs(obj, path, cdf = "copy")
     } else {
-      path <- tempfile(paste0(func, "_"), debug_dir, ".RDS")
       saveRDS(obj, path)
     }
-    message(sprintf(">> Storing intermediate file to %s for debugging...", path))
   }
 }
 
