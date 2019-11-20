@@ -1,7 +1,7 @@
 #' @export
 process_study <- function(study, input_dir, debug_dir = NULL) {
   # summarize files
-  files <- summarize_study(study, input_dir)
+  files <- summarize_study(study, input_dir, debug_dir)
   files_by_panel <- split(files, files$panel)
 
   # create gating set for each panel
@@ -12,7 +12,7 @@ process_study <- function(study, input_dir, debug_dir = NULL) {
 #' @importFrom ImmPortR query_filePath
 #' @importFrom flowCore read.FCSheader
 #' @importFrom gtools mixedsort
-summarize_study <- function(study, input_dir) {
+summarize_study <- function(study, input_dir, debug_dir = NULL) {
   files <- query_filePath(study)
   files <- files[files$fileDetail == "Flow cytometry result", ]
   files$filePath <- file.path(input_dir, files$fileName)
@@ -64,6 +64,8 @@ summarize_study <- function(study, input_dir) {
     paste(gsub(" \\S+", "", x), collapse = " ")
   })
   message(paste(mixedsort(panels_clean), collapse = "\n"))
+
+  save_debug(files, "summarize_study", debug_dir)
 
   files
 }
