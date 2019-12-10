@@ -24,6 +24,11 @@ headers <- Rlabkey::labkey.selectRows(
 headers <- unique(headers[, c("pns_reported", "pns_preferred")])
 MARKERS <- headers$pns_preferred
 names(MARKERS) <- headers$pns_reported
+MARKERS[c("TCRgd", "TCR GAMMA DELTA", "TCRGD", "gdTCR")] <- "TCRgd"
+MARKERS[c("STAT1", "STAT 1", "STAT-1")] <- "STAT1"
+MARKERS[c("STAT3", "STAT 3", "STAT-3")] <- "STAT3"
+MARKERS[c("STAT5", "STAT 5", "STAT-5")] <- "STAT5A"
+MARKERS[c("CD4/CD20", "CD4 / CD20", "CD4 /CD20", "CD4/ CD20")] <- "CD4/CD20"
 warning(which(table(headers$pns_reported) > 1))
 
 
