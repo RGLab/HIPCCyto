@@ -15,8 +15,9 @@ process_study <- function(study, input_dir, debug_dir = NULL) {
 summarize_study <- function(study, input_dir, debug_dir = NULL) {
   files <- query_filePath(study)
   files <- files[files$fileDetail == "Flow cytometry result", ]
+  files <- files[grepl(".fcs$", files$fileName), ]
   files$filePath <- file.path(input_dir, files$fileName)
-  rownames(files) <- files$fileName
+  # rownames(files) <- files$fileName
 
   # check if files exist. If not, throw warning and fetch them
   fcs_exist <- file.exists(files$filePath)
@@ -51,7 +52,11 @@ summarize_study <- function(study, input_dir, debug_dir = NULL) {
     PNN <- PNN[!is.na(PNS)]
     PNS <- PNS[!is.na(PNS)]
 
-    paste(mixedsort(paste0(PNS, " (", PNN, ")")), collapse = "; ")
+    if (length(PNS) == 0) {
+      ""
+    } else {
+      paste(mixedsort(paste0(PNS, " (", PNN, ")")), collapse = "; ")
+    }
   })
 
   files$panel <- panels
@@ -61,7 +66,11 @@ summarize_study <- function(study, input_dir, debug_dir = NULL) {
   # by panels, sample type, measurement technique, experiment accession
   message(sprintf(">> There are %s panel(s)...", length(ps)))
   panels_clean <- sapply(strsplit(ps, "; "), function(x) {
-    paste(gsub(" \\S+", "", x), collapse = " ")
+    if (length(x) == 0) {
+      ""
+    } else {
+      paste(gsub(" \\(.+\\)$", "", x), collapse = " | ")
+    }
   })
   message(paste(mixedsort(panels_clean), collapse = "\n"))
 
@@ -176,6 +185,9 @@ standardize_markernames <- function(gs, study, debug_dir = NULL) {
 
   # get current marker names and name them with channel names
   names_gs <- markernames(gs)
+  if (is(names_gs, "list")) {
+    names_gs <- names_gs[[1]]
+  }
   names(names_gs) <- colnames2(gs)
 
   # retrieve standard marker names from MARKERS
@@ -219,9 +231,10 @@ compensate_gs <- function(gs, study, debug_dir = NULL) {
 transform_gs <- function(gs, study, debug_dir = NULL) {
   message(">> Applying transformation...")
   channels <- colnames2(gs)
-  trans <- estimateLogicle(gs[[1]], channels)
-
-  gs <- transform(gs, trans)
+  if (length(channels) > 0) {
+    trans <- estimateLogicle(gs[[1]], channels)
+    gs <- transform(gs, trans)
+  }
 
   save_debug(gs, "transform_gs", debug_dir)
 
