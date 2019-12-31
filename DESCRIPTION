@@ -16,6 +16,7 @@ Imports:
     ncdfFlow,
     flowWorkspace,
     openCyto,
+    flowClust,
     assertthat,
     gtools
 RoxygenNote: 6.1.1

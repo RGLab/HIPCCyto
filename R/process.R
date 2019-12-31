@@ -241,7 +241,8 @@ transform_gs <- function(gs, study, debug_dir = NULL) {
   gs
 }
 
-#' @importFrom openCyto gatingTemplate gating
+#' @importFrom openCyto gatingTemplate gating add_pop remove_pop
+#' @importFrom flowClust flowClust
 gate_gs <- function(gs, study, debug_dir = NULL) {
   filePath <- sprintf("extdata/gating_template/%s.csv", study)
   file <- system.file(filePath, package = "HIPCCyto")
@@ -250,6 +251,14 @@ gate_gs <- function(gs, study, debug_dir = NULL) {
     message(sprintf(">> Applying gating template (%s)...", file))
     gt <- gatingTemplate(file)
     gating(gt, gs, mc.cores = detectCores(), parallel_type = "multicore")
+  } else {
+    message(">> Gating template does not exist for this study...")
+    message(">> Applying default gating methods...")
+    apply_quadrant_gate(gs)
+    apply_singlet_gate(gs, "FSC")
+    apply_singlet_gate(gs, "SSC")
+    apply_live_gate(gs)
+    apply_lymphocyte_gate(gs)
   }
 
   save_debug(gs, "gate_gs", debug_dir)
@@ -278,10 +287,164 @@ save_debug <- function(obj, func, debug_dir = NULL) {
 
 #' @importFrom flowCore parameters
 colnames2 <- function(gs) {
-  # grep("SC-|Time", colnames(gs), invert = TRUE, value = TRUE) # can't use this for now
+  # can't use this for now
+  # grep("SC-|Time", colnames(gs), invert = TRUE, value = TRUE)
 
   channels <- parameters(getData(gs)[[1]])@data$name
   markers <- parameters(getData(gs)[[1]])@data$desc
 
   unname(channels[!is.na(markers)])
+}
+
+#' @importFrom flowWorkspace gs_get_pop_paths
+get_parent <- function(gs) {
+  rev(gs_get_pop_paths(gs, path = 1))[1]
+}
+
+#' @importFrom flowWorkspace gs_pop_get_data
+compute_K <-function(gs) {
+  message(">> Computing for optimal number of clusters (K) for each sample...")
+  nc <- gs_pop_get_data(gs, get_parent(gs))
+  Ks <- mclapply(sampleNames(nc), function(x) {
+    flowClust(nc[[x]]@exprs[, c("FSC-A", "SSC-A")], K = 1:5, criterion = "ICL")@index
+  }, mc.cores = detectCores())
+  print(table(unlist(Ks)))
+
+  unique(unlist(Ks))[which.max(tabulate(match(unlist(Ks), unique(unlist(Ks)))))]
+}
+
+#' @importFrom flowWorkspace gs_pop_get_gate
+compute_target <- function(gs) {
+  message(">> Computing the target location of the lymphocyte cluster...")
+  lymphocytes_before <- gs_pop_get_gate(gs, "Lymphocytes")
+  fsc_before <- sapply(lymphocytes_before, function(x) x@mean[1])
+  ssc_before <- sapply(lymphocytes_before, function(x) x@mean[2])
+  density_fsc_before <- density(fsc_before)
+  density_ssc_before <- density(ssc_before)
+
+  c(
+    FSC = density_fsc_before$x[which.max(density_fsc_before$y)],
+    SSC = density_ssc_before$x[which.max(density_ssc_before$y)]
+  )
+}
+
+#' @importFrom flowCore rectangleGate
+.quadrantGate <- function(fr, pp_res, channels = NA, filterId = "", quadrant, ...) {
+  range <- switch(
+    quadrant,
+    "1" = c(0, Inf, 0, Inf),
+    "2" = c(-Inf, 0, 0, Inf),
+    "3" = c(-Inf, 0, -Inf, 0),
+    "4" = c(0, Inf, -Inf, 0)
+  )
+  mat <- matrix(range, ncol = 2, dimnames = list(c("min", "max"), c(channels[1], channels[2])))
+  rectangleGate(filterId = filterId, .gate = mat)
+}
+
+#' @importFrom openCyto registerPlugins
+apply_quadrant_gate <- function(gs) {
+  message(">> Applying quadrant gate...")
+  registerPlugins(fun = .quadrantGate, methodName = "quadrantGate")
+  add_pop(
+    gs = gs,
+    alias = "pos",
+    pop = "+",
+    parent = get_parent(gs),
+    dims = "FSC-A,SSC-A",
+    gating_method = "quadrantGate",
+    gating_args = "quadrant = 1"
+  )
+}
+
+apply_singlet_gate <- function(gs, channel) {
+  alias <- sprintf("SC%s", channel)
+  A <- sprintf("%s-A", channel)
+  H <- sprintf("%s-H", channel)
+  if (H %in% colnames(gs)) {
+    message(sprintf(">> Applying singlet gate by scatter channel (alias)...", alias))
+    add_pop(
+      gs = gs,
+      alias = alias,
+      pop = "+",
+      parent = get_parent(gs),
+      dims = sprintf("%s,%s", A, H),
+      gating_method = "singletGate",
+      gating_args = "prediction_level = 0.99",
+      mc.cores = detectCores(),
+      parallel_type = "multicore"
+    )
+  }
+}
+
+apply_lymphocyte_gate <- function(gs) {
+  K <- compute_K(gs)
+  gate_lymphocytes(gs, K)
+
+  target <- compute_target(gs)
+
+  message(">> Removing lymphocyte gate...")
+  remove_pop(gs)
+
+  gate_lymphocytes(gs, K, target)
+}
+
+gate_lymphocytes <- function(gs, K, target = NULL) {
+  if (is.null(target)) {
+    gating_args <- sprintf("K = %s", K)
+  } else {
+    gating_args <- sprintf("K = %s, target = c(%s, %s)", K, target["FSC"], target["SSC"])
+  }
+
+  message(">> Applying lymphocytes gate with flowClust by forward and side scatters (Lymphocytes)...")
+  message(gating_args)
+  add_pop_lymph(gs, gating_args)
+}
+
+get_live_marker <- function(gs) {
+  live <- grep("^(L|l)ive|LD|(V|v)iability$", markernames(gs), value = TRUE)
+
+  if (length(live) == 0) {
+    message(">> There is no viability dye channel in this gating set...")
+    return(NULL)
+  } else if (length(live) > 1) {
+    message(">> There are more than one viability dye channel in this gating set...")
+    message(paste(live, collapse = ", "))
+  }
+
+  live
+}
+
+apply_live_gate <- function(gs) {
+  live <- get_live_marker(gs)
+  if (!is.null(live)) {
+    message(sprintf(">> Applying live/dead gate with mindensity by %s (Live)...", live))
+    collapseDataForGating <- !is.null(pData(gs)$batch)
+    groupBy <- ifelse(collapseDataForGating, "batch", NA)
+    add_pop(
+      gs = gs,
+      alias = "Live",
+      pop = "-",
+      parent = get_parent(gs),
+      dims = live,
+      gating_method = "tailgate",
+      groupBy = groupBy,
+      collapseDataForGating = collapseDataForGating,
+      mc.cores = detectCores(),
+      parallel_type = "multicore"
+    )
+  }
+}
+
+add_pop_lymph <- function(gs, gating_args) {
+  add_pop(
+    gs = gs,
+    alias = "Lymphocytes",
+    pop = "+",
+    parent = get_parent(gs),
+    dims = "FSC-A,SSC-A",
+    gating_method = "flowClust",
+    gating_args = gating_args,
+    mc.cores = detectCores(),
+    parallel_type = "multicore"
+  )
 }
