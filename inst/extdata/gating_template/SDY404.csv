@@ -1,5 +1,0 @@
-alias,pop,parent,dims,gating_method,gating_args,collapseDataForGating,groupBy,preprocessing_method,preprocessing_args
-Cells,+,root,"FSC-A,SSC-A",singletGate,"prediction_level = 0.99, maxit = 100",,,,
-SCFSC,+,Cells,"FSC-A,FSC-H",singletGate,"prediction_level = 0.99, maxit = 100",,,,
-SCSSC,+,SCFSC,"SSC-A,SSC-H",singletGate,"prediction_level = 0.99, maxit = 100",,,,
-Live,-,SCSSC,"Viability",tailgate,,,,,
