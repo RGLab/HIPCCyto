@@ -390,9 +390,9 @@ apply_lymphocyte_gate <- function(gs) {
 
 gate_lymphocytes <- function(gs, K, target = NULL) {
   if (is.null(target)) {
-    gating_args <- sprintf("K = %s", K)
+    gating_args <- sprintf("randomStart = 1, K = %s", K)
   } else {
-    gating_args <- sprintf("K = %s, target = c(%s, %s)", K, target["FSC"], target["SSC"])
+    gating_args <- sprintf("randomStart = 1, K = %s, target = c(%s, %s)", K, target["FSC"], target["SSC"])
   }
 
   message(">> Applying lymphocytes gate with flowClust by forward and side scatters (Lymphocytes)...")
