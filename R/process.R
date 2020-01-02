@@ -361,7 +361,7 @@ apply_singlet_gate <- function(gs, channel) {
   A <- sprintf("%s-A", channel)
   H <- sprintf("%s-H", channel)
   if (H %in% colnames(gs)) {
-    message(sprintf(">> Applying singlet gate by scatter channel (alias)...", alias))
+    message(sprintf(">> Applying singlet gate by scatter channel (%s)...", alias))
     add_pop(
       gs = gs,
       alias = alias,
