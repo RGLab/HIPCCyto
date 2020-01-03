@@ -397,7 +397,15 @@ gate_lymphocytes <- function(gs, K, target = NULL) {
 
   message(">> Applying lymphocytes gate with flowClust by forward and side scatters (Lymphocytes)...")
   message(gating_args)
-  add_pop_lymph(gs, gating_args)
+  i <- 1
+  attempt <- try(add_pop_lymph(gs, gating_args))
+  while (is(attempt, "try-error")) {
+    i <- i + 1
+    stopifnot(i < 100)
+    gating_args_i <- paste0(gating_args, ", seed = ", i)
+    message(gating_args_i)
+    attempt <- try(add_pop_lymph(gs, gating_args_i))
+  }
 }
 
 get_live_marker <- function(gs) {
