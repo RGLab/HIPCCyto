@@ -90,21 +90,21 @@ process_panel <- function(files, debug_dir = NULL) {
   message(paste(strsplit(panel, split = "; ")[[1]], collapse = "\n"))
 
   # load files
-  nc <- create_nc(files$filePath, study, debug_dir)
+  print(system.time(nc <- create_nc(files$filePath, study, debug_dir)))
 
   # merge metadata
-  nc <- merge_metadata(nc, files, study, debug_dir)
+  print(system.time(nc <- merge_metadata(nc, files, study, debug_dir)))
 
   # merge batch information
-  nc <- merge_batch(nc, study, debug_dir)
+  print(system.time(nc <- merge_batch(nc, study, debug_dir)))
 
   # create a gating set
-  gs <- create_gs(nc, study, debug_dir)
+  print(system.time(gs <- create_gs(nc, study, debug_dir)))
 
   # pre-process
-  gs <- standardize_markernames(gs, study, debug_dir)
-  gs <- compensate_gs(gs, study, debug_dir)
-  gs <- transform_gs(gs, study, debug_dir)
+  print(system.time(gs <- standardize_markernames(gs, study, debug_dir)))
+  print(system.time(gs <- compensate_gs(gs, study, debug_dir)))
+  print(system.time(gs <- transform_gs(gs, study, debug_dir)))
 
   # gate
   gate_gs(gs, study, debug_dir)
@@ -254,11 +254,11 @@ gate_gs <- function(gs, study, debug_dir = NULL) {
   } else {
     message(">> Gating template does not exist for this study...")
     message(">> Applying default gating methods...")
-    apply_quadrant_gate(gs)
-    apply_singlet_gate(gs, "FSC")
-    apply_singlet_gate(gs, "SSC")
-    apply_live_gate(gs)
-    apply_lymphocyte_gate(gs)
+    print(system.time(apply_quadrant_gate(gs)))
+    print(system.time(apply_singlet_gate(gs, "FSC")))
+    print(system.time(apply_singlet_gate(gs, "SSC")))
+    print(system.time(apply_live_gate(gs)))
+    print(system.time(apply_lymphocyte_gate(gs)))
   }
 
   save_debug(gs, "gate_gs", debug_dir)
