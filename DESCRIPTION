@@ -1,6 +1,6 @@
 Package: HIPCCyto
 Title: HIPC Cytometry
-Version: 0.0.0.9000
+Version: 0.0.0.9002
 Authors@R: 
     person(given = "Ju Yeong",
            family = "Kim",

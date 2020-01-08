@@ -302,30 +302,71 @@ get_parent <- function(gs) {
 }
 
 #' @importFrom flowWorkspace gs_pop_get_data
-compute_K <-function(gs) {
-  message(">> Computing for optimal number of clusters (K) for each sample...")
+compute_fc <- function(gs) {
+  message(">> Computing for the optimal number of clusters (K) for each sample...")
   nc <- gs_pop_get_data(gs, get_parent(gs))
-  Ks <- mclapply(sampleNames(nc), function(x) {
-    flowClust(nc[[x]]@exprs[, c("FSC-A", "SSC-A")], K = 1:5, criterion = "ICL")@index
+  fc <- mclapply(sampleNames(nc), function(x) {
+    flowClust(
+      x = nc[[x]]@exprs[, c("FSC-A", "SSC-A")],
+      K = 1:5,
+      criterion = "ICL",
+      trans = 0,
+      min.count = -1,
+      max.count = -1
+    )
   }, mc.cores = detectCores())
-  print(table(unlist(Ks)))
+  names(fc) <- sampleNames(nc)
 
-  unique(unlist(Ks))[which.max(tabulate(match(unlist(Ks), unique(unlist(Ks)))))]
+  fc
 }
 
 #' @importFrom flowWorkspace gs_pop_get_gate
-compute_target <- function(gs) {
-  message(">> Computing the target location of the lymphocyte cluster...")
-  lymphocytes_before <- gs_pop_get_gate(gs, "Lymphocytes")
-  fsc_before <- sapply(lymphocytes_before, function(x) x@mean[1])
-  ssc_before <- sapply(lymphocytes_before, function(x) x@mean[2])
-  density_fsc_before <- density(fsc_before)
-  density_ssc_before <- density(ssc_before)
+compute_target <- function(fc) {
+  message(">> Computing the target location of the lymphocyte clusters...")
+  sc <- sapply(fc, function(x) {
+    k <- x@index
+    e <- flowClust::getEstimates(x@.Data[[k]])
+    e$locations[which.max(e$proportions), ]
+  })
+  d <- MASS::kde2d(sc[1, ], sc[2, ])
+  i <- arrayInd(which.max(d$z), dim(d$z))
 
-  c(
-    FSC = density_fsc_before$x[which.max(density_fsc_before$y)],
-    SSC = density_ssc_before$x[which.max(density_ssc_before$y)]
-  )
+  target <- c(FSC = d$x[i[1, 1]], SSC = d$y[i[1, 2]])
+  message(paste(target, collapse = ", "))
+
+  target
+}
+
+convert_fc <- function(fc, target) {
+  quantile =  0.9
+  trans = 0
+  prior = list(NA)
+
+  gates <- lapply(fc, function(x) {
+    K <- x@index
+    tmix_results <- x@.Data[[K]]
+    fitted_means <- flowClust::getEstimates(tmix_results)$locations
+
+    target_dist <- as.matrix(dist(rbind(fitted_means, target)))
+    target_dist <- tail(target_dist, n = 1)[seq_len(K)]
+    cluster_selected <- which.min(target_dist)
+
+    posteriors <- list(
+      mu = tmix_results@mu,
+      lambda = tmix_results@lambda,
+      sigma = tmix_results@sigma,
+      nu = tmix_results@nu
+    )
+
+    flowClust_gate <- openCyto:::.getEllipseGate(
+      filter = tmix_results,
+      include = cluster_selected,
+      quantile = quantile,
+      trans = trans
+    )
+
+    openCyto:::fcEllipsoidGate(flowClust_gate, prior, posteriors)
+  })
 }
 
 #' @importFrom flowCore rectangleGate
@@ -377,35 +418,13 @@ apply_singlet_gate <- function(gs, channel) {
 }
 
 apply_lymphocyte_gate <- function(gs) {
-  K <- compute_K(gs)
-  gate_lymphocytes(gs, K)
-
-  target <- compute_target(gs)
-
-  message(">> Removing lymphocyte gate...")
-  remove_pop(gs)
-
-  gate_lymphocytes(gs, K, target)
-}
-
-gate_lymphocytes <- function(gs, K, target = NULL) {
-  if (is.null(target)) {
-    gating_args <- sprintf("randomStart = 1, K = %s", K)
-  } else {
-    gating_args <- sprintf("randomStart = 1, K = %s, target = c(%s, %s)", K, target["FSC"], target["SSC"])
-  }
+  fc <- compute_fc(gs)
+  target <- compute_target(fc)
+  gates <- convert_fc(fc, target)
 
   message(">> Applying lymphocytes gate with flowClust by forward and side scatters (Lymphocytes)...")
-  message(gating_args)
-  i <- 1
-  attempt <- try(add_pop_lymph(gs, gating_args))
-  while (is(attempt, "try-error")) {
-    i <- i + 1
-    stopifnot(i < 100)
-    gating_args_i <- paste0(gating_args, ", seed = ", i)
-    message(gating_args_i)
-    attempt <- try(add_pop_lymph(gs, gating_args_i))
-  }
+  flowWorkspace::gs_pop_add(gs, gates, name = "Lymphocytes", parent = get_parent(gs))
+  flowWorkspace::recompute(gs)
 }
 
 get_live_marker <- function(gs) {
@@ -441,18 +460,4 @@ apply_live_gate <- function(gs) {
       parallel_type = "multicore"
     )
   }
-}
-
-add_pop_lymph <- function(gs, gating_args) {
-  add_pop(
-    gs = gs,
-    alias = "Lymphocytes",
-    pop = "+",
-    parent = get_parent(gs),
-    dims = "FSC-A,SSC-A",
-    gating_method = "flowClust",
-    gating_args = gating_args,
-    mc.cores = detectCores(),
-    parallel_type = "multicore"
-  )
 }
