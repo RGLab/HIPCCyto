@@ -258,7 +258,7 @@ gate_gs <- function(gs, study, debug_dir = NULL) {
     print(system.time(apply_singlet_gate(gs, "FSC")))
     print(system.time(apply_singlet_gate(gs, "SSC")))
     print(system.time(apply_live_gate(gs)))
-    print(system.time(apply_lymphocyte_gate(gs)))
+    print(system.time(apply_lymphocyte_gate(gs, debug_dir)))
   }
 
   save_debug(gs, "gate_gs", debug_dir)
@@ -302,11 +302,11 @@ get_parent <- function(gs) {
 }
 
 #' @importFrom flowWorkspace gs_pop_get_data
-compute_fc <- function(gs) {
+compute_flowClusters <- function(gs, debug_dir = NULL) {
   message(">> Computing for the optimal number of clusters (K) for each sample...")
   nc <- gs_pop_get_data(gs, get_parent(gs))
-  fc <- mclapply(sampleNames(nc), function(x) {
-    flowClust(
+  flowClusters <- mclapply(sampleNames(nc), function(x) {
+    fcl <- flowClust(
       x = nc[[x]]@exprs[, c("FSC-A", "SSC-A")],
       K = 1:5,
       criterion = "ICL",
@@ -314,42 +314,59 @@ compute_fc <- function(gs) {
       min.count = -1,
       max.count = -1
     )
+    fc <- fcl@.Data[[fcl@index]]
+    fc@z <- matrix()
+    fc@u <- matrix()
+    fc
   }, mc.cores = detectCores())
-  names(fc) <- sampleNames(nc)
+  names(flowClusters) <- sampleNames(nc)
 
-  fc
+  save_debug(flowClusters, "compute_flowClusters", debug_dir)
+
+  flowClusters
+}
+
+select_cluster <- function(fitted_means, target) {
+  target_dist <- as.matrix(dist(rbind(fitted_means, target)))
+  target_dist <- tail(target_dist, n = 1)[seq_len(nrow(fitted_means))]
+  which.min(target_dist)
 }
 
 #' @importFrom flowWorkspace gs_pop_get_gate
-compute_target <- function(fc) {
+compute_target <- function(flowClusters) {
   message(">> Computing the target location of the lymphocyte clusters...")
-  sc <- sapply(fc, function(x) {
-    k <- x@index
-    e <- flowClust::getEstimates(x@.Data[[k]])
-    e$locations[which.max(e$proportions), ]
-  })
-  d <- MASS::kde2d(sc[1, ], sc[2, ])
-  i <- arrayInd(which.max(d$z), dim(d$z))
+  mus <- lapply(flowClusters, function(x) {
+    est <- flowClust::getEstimates(x)
 
-  target <- c(FSC = d$x[i[1, 1]], SSC = d$y[i[1, 2]])
-  message(paste(target, collapse = ", "))
+    if (x@K > 1) {
+      to_remove <- select_cluster(est$locations, c(0, 0))
+      est$proportions <- est$proportions[-to_remove]
+      est$locations <- est$locations[-to_remove, , drop = FALSE]
+    }
+
+    est$locations[which.max(est$proportions), ]
+  })
+  mus <- do.call(rbind, mus)
+  colnames(mus) <- c("FSC", "SSC")
+  fcl_mus <- flowClust::flowClust(mus, K = 1:5, criterion = "ICL", trans = 0, min.count = -1, max.count = -1)
+  k_mus <- fcl_mus@index
+  est_mus <- flowClust::getEstimates(fcl_mus@.Data[[k_mus]])
+  target <- est_mus$locations[which.max(est_mus$proportions), ]
+
+  print(est_mus)
+  message(sprintf(">> Selecting FSC-A = %s and SSC-A = %s as target location", target[1], target[2]))
 
   target
 }
 
-convert_fc <- function(fc, target) {
+create_fcEllipsoidGate <- function(flowClusters, target) {
   quantile =  0.9
   trans = 0
   prior = list(NA)
 
-  gates <- lapply(fc, function(x) {
-    K <- x@index
-    tmix_results <- x@.Data[[K]]
+  gates <- lapply(flowClusters, function(tmix_results) {
     fitted_means <- flowClust::getEstimates(tmix_results)$locations
-
-    target_dist <- as.matrix(dist(rbind(fitted_means, target)))
-    target_dist <- tail(target_dist, n = 1)[seq_len(K)]
-    cluster_selected <- which.min(target_dist)
+    cluster_selected <- select_cluster(fitted_means, target)
 
     posteriors <- list(
       mu = tmix_results@mu,
@@ -417,10 +434,10 @@ apply_singlet_gate <- function(gs, channel) {
   }
 }
 
-apply_lymphocyte_gate <- function(gs) {
-  fc <- compute_fc(gs)
-  target <- compute_target(fc)
-  gates <- convert_fc(fc, target)
+apply_lymphocyte_gate <- function(gs, debug_dir = NULL) {
+  flowClusters <- compute_flowClusters(gs, debug_dir)
+  target <- compute_target(flowClusters)
+  gates <- create_fcEllipsoidGate(flowClusters, target)
 
   message(">> Applying lymphocytes gate with flowClust by forward and side scatters (Lymphocytes)...")
   flowWorkspace::gs_pop_add(gs, gates, name = "Lymphocytes", parent = get_parent(gs))
