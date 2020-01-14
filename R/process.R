@@ -332,8 +332,7 @@ select_cluster <- function(fitted_means, target) {
   which.min(target_dist)
 }
 
-#' @importFrom flowWorkspace gs_pop_get_gate
-compute_target <- function(flowClusters) {
+find_target <- function(flowClusters) {
   message(">> Computing the target location of the lymphocyte clusters...")
   mus <- lapply(flowClusters, function(x) {
     est <- flowClust::getEstimates(x)
@@ -356,15 +355,40 @@ compute_target <- function(flowClusters) {
   print(est_mus)
   message(sprintf(">> Selecting FSC-A = %s and SSC-A = %s as target location", target[1], target[2]))
 
-  target
+  targets <- rep_len(list(target), length(flowClusters))
+  names(targets) <- names(flowClusters)
+
+  targets
 }
 
-create_fcEllipsoidGate <- function(flowClusters, target) {
+compute_targets <- function(gs, flowClusters) {
+  batch <- pData(gs)$batch
+
+  if (is.null(batch)) {
+    targets <- find_target(flowClusters)
+  } else {
+    pd <- pData(gs)[, c("name", "batch")]
+    pd <- split(pd, pd$batch)
+
+    list_targets <- lapply(pd, function(x) {
+      message(unique(x$batch))
+      find_target(flowClusters[x$name])
+    })
+    targets <- unlist(unname(list_targets), recursive = FALSE)
+  }
+
+  targets
+}
+
+create_fcEllipsoidGate <- function(flowClusters, targets) {
   quantile =  0.9
   trans = 0
   prior = list(NA)
 
-  gates <- lapply(flowClusters, function(tmix_results) {
+  gates <- lapply(names(flowClusters), function(sample) {
+    tmix_results <- flowClusters[[sample]]
+    target <- targets[[sample]]
+
     fitted_means <- flowClust::getEstimates(tmix_results)$locations
     cluster_selected <- select_cluster(fitted_means, target)
 
@@ -384,6 +408,9 @@ create_fcEllipsoidGate <- function(flowClusters, target) {
 
     openCyto:::fcEllipsoidGate(flowClust_gate, prior, posteriors)
   })
+  names(gates) <- names(flowClusters)
+
+  gates
 }
 
 #' @importFrom flowCore rectangleGate
@@ -436,8 +463,8 @@ apply_singlet_gate <- function(gs, channel) {
 
 apply_lymphocyte_gate <- function(gs, debug_dir = NULL) {
   flowClusters <- compute_flowClusters(gs, debug_dir)
-  target <- compute_target(flowClusters)
-  gates <- create_fcEllipsoidGate(flowClusters, target)
+  targets <- compute_targets(gs, flowClusters)
+  gates <- create_fcEllipsoidGate(flowClusters, targets)
 
   message(">> Applying lymphocytes gate with flowClust by forward and side scatters (Lymphocytes)...")
   flowWorkspace::gs_pop_add(gs, gates, name = "Lymphocytes", parent = get_parent(gs))
