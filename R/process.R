@@ -1,3 +1,4 @@
+#' @importFrom parallel mclapply
 #' @export
 process_study <- function(study, input_dir, debug_dir = NULL) {
   # summarize files
@@ -16,8 +17,11 @@ summarize_study <- function(study, input_dir, debug_dir = NULL) {
   files <- query_filePath(study)
   files <- files[files$fileDetail == "Flow cytometry result", ]
   files <- files[grepl(".fcs$", files$fileName), ]
+  files$filePathId <- NULL
+  files$sourceAccession <- NULL
   files$filePath <- file.path(input_dir, files$fileName)
-  # rownames(files) <- files$fileName
+  files <- unique(files)
+  rownames(files) <- files$fileName
 
   # check if files exist. If not, throw warning and fetch them
   fcs_exist <- file.exists(files$filePath)
@@ -31,7 +35,37 @@ summarize_study <- function(study, input_dir, debug_dir = NULL) {
   # read headers and summarize panels
   map <- DATA[[study]]$map
   message(">> Reading in fcs headers...")
-  headers <- lapply(files$filePath, function(file) read.FCSheader(file, channel_alias = map))
+  headers <- mclapply(files$filePath, function(file) read.FCSheader(file, channel_alias = map), mc.cores = detectCores())
+
+
+  files$tot <- sapply(headers, function(x) x[[1]]["$TOT"])
+  files$par <- sapply(headers, function(x) x[[1]]["$PAR"])
+
+  files$src <- sapply(headers, function(x) x[[1]]["$SRC"])
+  files$date <- sapply(headers, function(x) x[[1]]["$DATE"])
+  files$btim <- sapply(headers, function(x) x[[1]]["$BTIM"])
+  files$etim <- sapply(headers, function(x) x[[1]]["$ETIM"])
+  files$cyt <- sapply(headers, function(x) x[[1]]["$CYT"])
+
+  files$creator <- sapply(headers, function(x) x[[1]]["CREATOR"])
+  files$tubeName <- sapply(headers, function(x) x[[1]]["TUBE NAME"])
+  files$experimentName <- sapply(headers, function(x) x[[1]]["EXPERIMENT NAME"])
+  files$settings <- sapply(headers, function(x) x[[1]]["SETTINGS"])
+  files$cytnum <- sapply(headers, function(x) x[[1]]["CYTNUM"])
+  files$exportUserName <- sapply(headers, function(x) x[[1]]["EXPORT USER NAME"])
+  files$exportTime <- sapply(headers, function(x) x[[1]]["EXPORT TIME"])
+  files$asf <- sapply(headers, function(x) x[[1]]["FSC ASF"])
+  files$plateName <- sapply(headers, function(x) x[[1]]["PLATE NAME"])
+  files$plateId <- sapply(headers, function(x) x[[1]]["PLATE ID"])
+  files$wellId <- sapply(headers, function(x) x[[1]]["WELL ID"])
+
+  files$cstSetupStatus <- sapply(headers, function(x) x[[1]]["CST SETUP STATUS"])
+  files$cstBeadsLotId <- sapply(headers, function(x) x[[1]]["CST BEADS LOT ID"])
+  files$cstSetupDate <- sapply(headers, function(x) x[[1]]["CST SETUP DATE"])
+  files$cstBaselineDate <- sapply(headers, function(x) x[[1]]["CST BASELINE DATE"])
+  files$cytometerConfigName <- sapply(headers, function(x) x[[1]]["CYTOMETER CONFIG NAME"])
+  files$cytometerConfigCreateDate <- sapply(headers, function(x) x[[1]]["CYTOMETER CONFIG CREATE DATE"])
+
   panels <- sapply(headers, function(x) {
     header <- x[[1]]
     par <- as.integer(header["$PAR"])
@@ -157,7 +191,11 @@ merge_batch <- function(nc, study, debug_dir = NULL) {
     phenoData(nc)$batch <- unlist(
       fsApply(
         x = nc,
-        FUN = function(x) description(x)[keyword],
+        FUN = function(x) {
+          val <- description(x)[keyword][[1]]
+          if (is.null(val)) val <- NA
+          val
+        },
         simplify = FALSE
       )[phenoData(nc)$name],
       use.names = FALSE
@@ -348,7 +386,7 @@ find_target <- function(flowClusters) {
   mus <- do.call(rbind, mus)
   colnames(mus) <- c("FSC", "SSC")
   fcl_mus <- flowClust::flowClust(mus, K = 1:5, criterion = "ICL", trans = 0, min.count = -1, max.count = -1)
-  k_mus <- fcl_mus@index
+  k_mus <- ifelse(length(fcl_mus@index) == 0, 1, fcl_mus@index)
   est_mus <- flowClust::getEstimates(fcl_mus@.Data[[k_mus]])
   target <- est_mus$locations[which.max(est_mus$proportions), ]
 
@@ -368,7 +406,7 @@ compute_targets <- function(gs, flowClusters) {
     targets <- find_target(flowClusters)
   } else {
     pd <- pData(gs)[, c("name", "batch")]
-    pd <- split(pd, pd$batch)
+    pd <- split(pd, factor(pd$batch, exclude = NULL))
 
     list_targets <- lapply(pd, function(x) {
       message(unique(x$batch))
