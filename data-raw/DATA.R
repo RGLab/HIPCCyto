@@ -9,6 +9,9 @@ DATA <- list(
     # there are two batches, but don't correspond with either cohort or
     # study_time_collected
     batch = "CST SETUP DATE"
+  ),
+  "SDY514" = list(
+    batch = "CST SETUP DATE"
   )
 )
 
@@ -28,7 +31,8 @@ MARKERS[c("TCRgd", "TCR GAMMA DELTA", "TCRGD", "gdTCR")] <- "TCRgd"
 MARKERS[c("STAT1", "STAT 1", "STAT-1")] <- "STAT1"
 MARKERS[c("STAT3", "STAT 3", "STAT-3")] <- "STAT3"
 MARKERS[c("STAT5", "STAT 5", "STAT-5")] <- "STAT5A"
-MARKERS[c("CD4/CD20", "CD4 / CD20", "CD4 /CD20", "CD4/ CD20")] <- "CD4/CD20"
+MARKERS[c("CD4/CD20", "CD4 / CD20", "CD4 /CD20", "CD4/ CD20", "CD20/CD4")] <- "CD4/CD20"
+MARKERS[c("Cd85j")] <- "LILRB1"
 warning(which(table(headers$pns_reported) > 1))
 
 
