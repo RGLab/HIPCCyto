@@ -12,6 +12,12 @@ DATA <- list(
   ),
   "SDY514" = list(
     batch = "CST SETUP DATE"
+  ),
+  "SDY144" = list(
+    map = data.frame(
+      alias = c("PE-Texas Red-A", "Qdot 565-A", "Qdot 565-A"),
+      channels = c("PE-TxR-A", "QDOT 565-A", "QDot 565-A")
+    )
   )
 )
 
@@ -33,6 +39,9 @@ MARKERS[c("STAT3", "STAT 3", "STAT-3")] <- "STAT3"
 MARKERS[c("STAT5", "STAT 5", "STAT-5")] <- "STAT5A"
 MARKERS[c("CD4/CD20", "CD4 / CD20", "CD4 /CD20", "CD4/ CD20", "CD20/CD4")] <- "CD4/CD20"
 MARKERS[c("Cd85j")] <- "LILRB1"
+MARKERS[c("Lin-1", "LIN1", "lin-1")] <- "LIN-1" # SDY144
+MARKERS[c("cd86")] <- "CD86" # SDY144
+MARKERS[c("SLAM")] <- "SLAN" # SDY144
 warning(which(table(headers$pns_reported) > 1))
 
 
