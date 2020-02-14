@@ -27,3 +27,26 @@ apply_lymphocyte_gate_SDY301 <- function(gs, debug_dir= NULL, flowClusters = NUL
   flowWorkspace::recompute(gs)
   gs
 }
+
+#' @importFrom openCyto gate_mindensity2
+apply_dump_gate_SDY301 <- function(gs, plot=FALSE){
+  if(is.character(gs))
+    gs <- load_gs(gs)
+  if(any(grepl("Lymphocytes", gs_get_pop_paths(gs))))
+    gs_pop_remove(gs, "Lymphocytes")
+  if(any(grepl("Dump", gs_get_pop_paths(gs))))
+    gs_pop_remove(gs, "Dump")
+  gates <- lapply(sampleNames(gs), function(sn){
+    gate_mindensity2(gh_pop_get_data(gs[[sn]], "SCSSC"),
+                     channel="Pacific Orange-A",
+                     filterID="Dump",
+                     pivot=TRUE,
+                     gate_range=c(1.8,2.8), # Manually set
+                     plot=plot
+    )
+  })
+  names(gates) <- sampleNames(gs)
+  flowWorkspace::gs_pop_add(gs, gates, name="Dump", parent = get_parent(gs))
+  flowWorkspace::recompute(gs)
+  gs
+}
