@@ -19,7 +19,10 @@ fetch_files <- function(study, output_dir = ".") {
   # fetch ResultFiles directory
   output_path_resultFiles <- file.path(output_path, "ResultFiles")
   dir.create(output_path_resultFiles)
-  lapply(dirs$path, function(x) download_immport(x, output_path_resultFiles))
+  lapply(seq_len(nrow(dirs)), function(i) {
+    message(sprintf("%s: %s files (%s GB)", dirs[i, "basename"], dirs[i, "fileCount"], signif(dirs[i, "size"] / 1024 ^ 3, digits = 4)))
+    download_immport(dirs[i, "path"], output_path_resultFiles)
+  })
 
   # validate files (TODO)
 
