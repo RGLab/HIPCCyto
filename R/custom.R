@@ -1,5 +1,5 @@
 #' @importFrom flowWorkspace load_gs gs_pop_remove gs_pop_add
-apply_lymphocyte_gate_SDY301 <- function(gs, debug_dir= NULL, flowClusters = NULL){
+apply_lymphocyte_gate_custom <- function(gs, debug_dir= NULL, flowClusters = NULL, nclust = NULL, target = c(40000,5000)){
   if(is.character(gs))
     gs <- load_gs(gs)
   if(is.character(flowClusters)){
@@ -10,10 +10,15 @@ apply_lymphocyte_gate_SDY301 <- function(gs, debug_dir= NULL, flowClusters = NUL
       stop("Precomputed flowClusters and GatingSet don't match!")
   }
   if(is.null(flowClusters))
-    flowClusters <- compute_flowClusters(gs, debug_dir)
+    if(is.null(nclust))
+      flowClusters <- compute_flowClusters(gs, debug_dir)
+    else
+      flowClusters <- compute_flowClusters_custom(gs, debug_dir, nclust)
 
-  # Just point to the cluster near (40000,25000)
-  targets <- targets <- rep_len(list(c(40000,5000)), length(flowClusters))
+  # Should really keep these in a separate tabulated data structure
+  # SDY301: c(40000,5000)
+  # SDY144: c(60000,5000)
+  targets <- rep_len(list(target), length(flowClusters))
   names(targets) <- names(flowClusters)
   gates <- create_fcEllipsoidGate(flowClusters, targets)
 
@@ -29,7 +34,7 @@ apply_lymphocyte_gate_SDY301 <- function(gs, debug_dir= NULL, flowClusters = NUL
 }
 
 #' @importFrom openCyto gate_mindensity2
-apply_dump_gate_SDY301 <- function(gs, plot=FALSE){
+apply_dump_gate_custom <- function(gs, plot=FALSE, gate_range = c(1.8,2.8)){
   if(is.character(gs))
     gs <- load_gs(gs)
   if(any(grepl("Lymphocytes", gs_get_pop_paths(gs))))
@@ -41,7 +46,8 @@ apply_dump_gate_SDY301 <- function(gs, plot=FALSE){
                      channel="Pacific Orange-A",
                      filterID="Dump",
                      pivot=TRUE,
-                     gate_range=c(1.8,2.8), # Manually set
+                     # SDY301: c(1.8, 2.8)
+                     gate_range=gate_range, # Manually set
                      plot=plot
     )
   })
@@ -49,4 +55,26 @@ apply_dump_gate_SDY301 <- function(gs, plot=FALSE){
   flowWorkspace::gs_pop_add(gs, gates, name="Dump", parent = get_parent(gs))
   flowWorkspace::recompute(gs)
   gs
+}
+
+compute_flowClusters_custom <- function(gs, debug_dir = NULL, nclust=1) {
+  message(">> Computing for the optimal number of clusters (K) for each sample...")
+  nc <- gs_pop_get_data(gs, get_parent(gs))
+  flowClusters <- mclapply(sampleNames(nc), function(x) {
+    fc <- flowClust(
+      x = nc[[x]]@exprs[, c("FSC-A", "SSC-A")],
+      K = nclust,
+      trans = 0,
+      min.count = -1,
+      max.count = -1
+    )
+    fc@z <- matrix()
+    fc@u <- matrix()
+    fc
+  }, mc.cores = detectCores())
+  names(flowClusters) <- sampleNames(nc)
+
+  save_debug(flowClusters, "compute_flowClusters", debug_dir)
+
+  flowClusters
 }
