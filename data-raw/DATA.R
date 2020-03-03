@@ -18,6 +18,18 @@ DATA <- list(
       alias = c("PE-Texas Red-A", "Qdot 565-A", "Qdot 565-A"),
       channels = c("PE-TxR-A", "QDOT 565-A", "QDot 565-A")
     )
+  ),
+  "SDY212" = list(
+    batch = "EXPERIMENT NAME"
+  ),
+  "SDY296" = list(
+    batch = "EXPERIMENT NAME"
+  ),
+  "SDY312" = list(
+    batch = "EXPERIMENT NAME"
+  ),
+  "SDY887" = list(
+    toRemove = 0.04
   )
 )
 

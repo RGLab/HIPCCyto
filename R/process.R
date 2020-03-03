@@ -292,7 +292,7 @@ gate_gs <- function(gs, study, debug_dir = NULL) {
   } else {
     message(">> Gating template does not exist for this study...")
     message(">> Applying default gating methods...")
-    print(system.time(apply_quadrant_gate(gs)))
+    print(system.time(apply_quadrant_gate(gs, study)))
     print(system.time(apply_singlet_gate(gs, "FSC")))
     print(system.time(apply_singlet_gate(gs, "SSC")))
     print(system.time(apply_live_gate(gs)))
@@ -452,30 +452,48 @@ create_fcEllipsoidGate <- function(flowClusters, targets) {
 }
 
 #' @importFrom flowCore rectangleGate
-.quadrantGate <- function(fr, pp_res, channels = NA, filterId = "", quadrant, ...) {
+.quadrantGate <- function(fr, pp_res, channels = NA, filterId = "", toRemove = 0, quadrant, ...) {
+  lim_func <- switch(
+    quadrant,
+    "1" = c(max, max),
+    "2" = c(min, max),
+    "3" = c(min, min),
+    "4" = c(max, min)
+  )
+  ch1_lim <- lim_func[[1]](fr@exprs[, channels[1]]) * (1 - toRemove)
+  ch2_lim <- lim_func[[2]](fr@exprs[, channels[1]]) * (1 - toRemove)
+
   range <- switch(
     quadrant,
-    "1" = c(0, Inf, 0, Inf),
-    "2" = c(-Inf, 0, 0, Inf),
-    "3" = c(-Inf, 0, -Inf, 0),
-    "4" = c(0, Inf, -Inf, 0)
+    "1" = c(0, ch1_lim, 0, ch2_lim),
+    "2" = c(-ch1_lim, 0, 0, ch2_lim),
+    "3" = c(-ch1_lim, 0, -ch2_lim, 0),
+    "4" = c(0, ch1_lim, -ch2_lim, 0)
   )
   mat <- matrix(range, ncol = 2, dimnames = list(c("min", "max"), c(channels[1], channels[2])))
   rectangleGate(filterId = filterId, .gate = mat)
 }
 
 #' @importFrom openCyto registerPlugins
-apply_quadrant_gate <- function(gs) {
+apply_quadrant_gate <- function(gs, study) {
   message(">> Applying quadrant gate...")
   registerPlugins(fun = .quadrantGate, methodName = "quadrantGate")
-  add_pop(
+
+  gating_args <- "quadrant = 1"
+  toRemove <- DATA[[study]]$toRemove
+  if (!is.null(toRemove)) {
+    message(sprintf(">> Removing %s%% of FSC-A and SSC-A", signif(toRemove, 3) * 100))
+    gating_args <- sprintf("%s, toRemove = %s", gating_args, toRemove)
+  }
+
+  openCyto::gs_add_gating_method(
     gs = gs,
     alias = "pos",
     pop = "+",
     parent = get_parent(gs),
     dims = "FSC-A,SSC-A",
     gating_method = "quadrantGate",
-    gating_args = "quadrant = 1"
+    gating_args = gating_args
   )
 }
 
