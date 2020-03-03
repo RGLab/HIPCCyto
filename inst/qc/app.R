@@ -42,13 +42,13 @@ server <- function(input, output, session) {
   pop <- reactiveVal()
 
   observeEvent(input$load_study, {
-    choices <- list.files(file.path(jkim, input$study, "GatingSet"))
+    choices <- list.files(file.path(wd, input$study, "GatingSet"))
     updateSelectInput(session, "gs", choices = choices)
   })
 
   observeEvent(input$load_gs, {
     if (input$gs != "") {
-    path <- file.path(jkim, input$study, "GatingSet", input$gs)
+    path <- file.path(wd, input$study, "GatingSet", input$gs)
 
       if (file.exists(path)) {
         gs(load_gs(path))
@@ -88,7 +88,7 @@ server <- function(input, output, session) {
       output[[plotname]] <- renderPlot({
         autoplot(GS[seq(from, to)], node)
       })
-      plotOutput(plotname)
+      plotOutput(plotname, height = "800px")
     })
 
     viz <- do.call(tagList, plot_output_list)
