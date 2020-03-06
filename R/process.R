@@ -37,7 +37,6 @@ summarize_study <- function(study, input_dir, debug_dir = NULL) {
   message(">> Reading in fcs headers...")
   headers <- mclapply(files$filePath, function(file) read.FCSheader(file, channel_alias = map), mc.cores = detectCores())
 
-
   files$tot <- sapply(headers, function(x) x[[1]]["$TOT"])
   files$par <- sapply(headers, function(x) x[[1]]["$PAR"])
 
@@ -142,6 +141,8 @@ process_panel <- function(files, debug_dir = NULL) {
 
   # gate
   gate_gs(gs, study, debug_dir)
+
+  gs
 }
 
 
@@ -243,11 +244,11 @@ standardize_markernames <- function(gs, study, debug_dir = NULL) {
   gs
 }
 
-#' @importFrom flowWorkspace getData compensate
+#' @importFrom flowWorkspace gs_pop_get_data compensate
 #' @importFrom flowCore spillover
 compensate_gs <- function(gs, study, debug_dir = NULL) {
   message(">> Applying compensation...")
-  nc <- getData(gs)
+  nc <- gs_pop_get_data(gs)
   cols <- colnames(gs)
   comp <- fsApply(nc, function(x) {
     spills <- spillover(x)
@@ -279,8 +280,7 @@ transform_gs <- function(gs, study, debug_dir = NULL) {
   gs
 }
 
-#' @importFrom openCyto gatingTemplate gating add_pop remove_pop
-#' @importFrom flowClust flowClust
+#' @importFrom openCyto gatingTemplate gt_gating gs_add_gating_method
 gate_gs <- function(gs, study, debug_dir = NULL) {
   filePath <- sprintf("extdata/gating_template/%s.csv", study)
   file <- system.file(filePath, package = "HIPCCyto")
@@ -288,7 +288,7 @@ gate_gs <- function(gs, study, debug_dir = NULL) {
   if (file != "") {
     message(sprintf(">> Applying gating template (%s)...", file))
     gt <- gatingTemplate(file)
-    gating(gt, gs, mc.cores = detectCores(), parallel_type = "multicore")
+    gt_gating(gt, gs, mc.cores = detectCores(), parallel_type = "multicore")
   } else {
     message(">> Gating template does not exist for this study...")
     message(">> Applying default gating methods...")
@@ -324,12 +324,13 @@ save_debug <- function(obj, func, debug_dir = NULL) {
 }
 
 #' @importFrom flowCore parameters
+#' @importFrom flowWorkspace gh_pop_get_data
 colnames2 <- function(gs) {
   # can't use this for now
   # grep("SC-|Time", colnames(gs), invert = TRUE, value = TRUE)
 
-  channels <- parameters(getData(gs)[[1]])@data$name
-  markers <- parameters(getData(gs)[[1]])@data$desc
+  channels <- parameters(gh_pop_get_data(gs[[1]]))@data$name
+  markers <- parameters(gh_pop_get_data(gs[[1]]))@data$desc
 
   unname(channels[!is.na(markers)])
 }
@@ -340,6 +341,7 @@ get_parent <- function(gs) {
 }
 
 #' @importFrom flowWorkspace gs_pop_get_data
+#' @importFrom flowClust flowClust
 compute_flowClusters <- function(gs, debug_dir = NULL) {
   message(">> Computing for the optimal number of clusters (K) for each sample...")
   nc <- gs_pop_get_data(gs, get_parent(gs))
@@ -370,10 +372,11 @@ select_cluster <- function(fitted_means, target) {
   which.min(target_dist)
 }
 
+#' @importFrom flowClust getEstimates
 find_target <- function(flowClusters) {
   message(">> Computing the target location of the lymphocyte clusters...")
   mus <- lapply(flowClusters, function(x) {
-    est <- flowClust::getEstimates(x)
+    est <- getEstimates(x)
 
     if (x@K > 1) {
       to_remove <- select_cluster(est$locations, c(0, 0))
@@ -385,9 +388,9 @@ find_target <- function(flowClusters) {
   })
   mus <- do.call(rbind, mus)
   colnames(mus) <- c("FSC", "SSC")
-  fcl_mus <- flowClust::flowClust(mus, K = 1:5, criterion = "ICL", trans = 0, min.count = -1, max.count = -1)
+  fcl_mus <- flowClust(mus, K = 1:5, criterion = "ICL", trans = 0, min.count = -1, max.count = -1)
   k_mus <- ifelse(length(fcl_mus@index) == 0, 1, fcl_mus@index)
-  est_mus <- flowClust::getEstimates(fcl_mus@.Data[[k_mus]])
+  est_mus <- getEstimates(fcl_mus@.Data[[k_mus]])
   target <- est_mus$locations[which.max(est_mus$proportions), ]
 
   print(est_mus)
@@ -427,7 +430,7 @@ create_fcEllipsoidGate <- function(flowClusters, targets) {
     tmix_results <- flowClusters[[sample]]
     target <- targets[[sample]]
 
-    fitted_means <- flowClust::getEstimates(tmix_results)$locations
+    fitted_means <- getEstimates(tmix_results)$locations
     cluster_selected <- select_cluster(fitted_means, target)
 
     posteriors <- list(
@@ -474,10 +477,10 @@ create_fcEllipsoidGate <- function(flowClusters, targets) {
   rectangleGate(filterId = filterId, .gate = mat)
 }
 
-#' @importFrom openCyto registerPlugins
+#' @importFrom openCyto register_plugins
 apply_quadrant_gate <- function(gs, study) {
   message(">> Applying quadrant gate...")
-  registerPlugins(fun = .quadrantGate, methodName = "quadrantGate")
+  register_plugins(fun = .quadrantGate, methodName = "quadrantGate")
 
   gating_args <- "quadrant = 1"
   toRemove <- DATA[[study]]$toRemove
@@ -486,7 +489,7 @@ apply_quadrant_gate <- function(gs, study) {
     gating_args <- sprintf("%s, toRemove = %s", gating_args, toRemove)
   }
 
-  openCyto::gs_add_gating_method(
+  gs_add_gating_method(
     gs = gs,
     alias = "pos",
     pop = "+",
@@ -503,7 +506,7 @@ apply_singlet_gate <- function(gs, channel) {
   H <- sprintf("%s-H", channel)
   if (H %in% colnames(gs)) {
     message(sprintf(">> Applying singlet gate by scatter channel (%s)...", alias))
-    add_pop(
+    gs_add_gating_method(
       gs = gs,
       alias = alias,
       pop = "+",
@@ -517,14 +520,20 @@ apply_singlet_gate <- function(gs, channel) {
   }
 }
 
+#' @importFrom flowWorkspace gs_pop_add
 apply_lymphocyte_gate <- function(gs, debug_dir = NULL) {
   flowClusters <- compute_flowClusters(gs, debug_dir)
   targets <- compute_targets(gs, flowClusters)
   gates <- create_fcEllipsoidGate(flowClusters, targets)
 
   message(">> Applying lymphocytes gate with flowClust by forward and side scatters (Lymphocytes)...")
-  flowWorkspace::gs_pop_add(gs, gates, name = "Lymphocytes", parent = get_parent(gs))
-  flowWorkspace::recompute(gs)
+  gs_pop_add(
+    gs = gs,
+    gate = gates,
+    name = "Lymphocytes",
+    parent = get_parent(gs),
+    recompute = TRUE
+  )
 }
 
 get_live_marker <- function(gs) {
@@ -547,7 +556,7 @@ apply_live_gate <- function(gs) {
     message(sprintf(">> Applying live/dead gate with mindensity by %s (Live)...", live))
     collapseDataForGating <- !is.null(pData(gs)$batch)
     groupBy <- ifelse(collapseDataForGating, "batch", NA)
-    add_pop(
+    gs_add_gating_method(
       gs = gs,
       alias = "Live",
       pop = "-",

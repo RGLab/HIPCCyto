@@ -1,4 +1,5 @@
 #' @importFrom ImmPortR list_immport download_immport
+#' @export
 fetch_files <- function(study, output_dir = ".") {
   # assert study
   assert_study(study)
