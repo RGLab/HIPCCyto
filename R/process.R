@@ -513,7 +513,7 @@ apply_singlet_gate <- function(gs, channel) {
       parent = get_parent(gs),
       dims = sprintf("%s,%s", A, H),
       gating_method = "singletGate",
-      gating_args = "prediction_level = 0.99",
+      gating_args = "prediction_level = 0.99, wider_gate = TRUE",
       mc.cores = detectCores(),
       parallel_type = "multicore"
     )
