@@ -295,7 +295,7 @@ gate_gs <- function(gs, study, debug_dir = NULL) {
     print(system.time(apply_quadrant_gate(gs, study)))
     print(system.time(apply_singlet_gate(gs, "FSC")))
     print(system.time(apply_singlet_gate(gs, "SSC")))
-    print(system.time(apply_live_gate(gs)))
+    print(system.time(apply_live_gate(gs, study)))
     print(system.time(apply_lymphocyte_gate(gs, debug_dir)))
   }
 
@@ -550,19 +550,28 @@ get_live_marker <- function(gs) {
   live
 }
 
-apply_live_gate <- function(gs) {
+apply_live_gate <- function(gs, study) {
   live <- get_live_marker(gs)
   if (!is.null(live)) {
-    message(sprintf(">> Applying live/dead gate with mindensity by %s (Live)...", live))
+    gating_method <- ifelse(is.null(DATA[[study]]$live_method), "mindensity", DATA[[study]]$live_method)
+    gating_args <- ifelse(is.null(DATA[[study]]$live_args), NA, DATA[[study]]$live_args)
     collapseDataForGating <- !is.null(pData(gs)$batch)
     groupBy <- ifelse(collapseDataForGating, "batch", NA)
+
+    message(sprintf(">> Applying live/dead gate with %s (%s) by %s (Live)...", gating_method, gating_args, live))
+
+    if (collapseDataForGating) {
+      message(sprintf(">> Collapsing data for gating by %s...", groupBy))
+    }
+
     gs_add_gating_method(
       gs = gs,
       alias = "Live",
       pop = "-",
       parent = get_parent(gs),
       dims = live,
-      gating_method = "tailgate",
+      gating_method = gating_method,
+      gating_args = gating_args,
       groupBy = groupBy,
       collapseDataForGating = collapseDataForGating,
       mc.cores = detectCores(),

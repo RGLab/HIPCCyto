@@ -8,7 +8,9 @@ DATA <- list(
     # acquired date (to examine batches)
     # there are two batches, but don't correspond with either cohort or
     # study_time_collected
-    batch = "CST SETUP DATE"
+    batch = "CST SETUP DATE",
+    live_method = "tailgate",
+    live_args = "num_peaks = 3, ref_peak = 3"
   ),
   "SDY514" = list(
     batch = "CST SETUP DATE"
