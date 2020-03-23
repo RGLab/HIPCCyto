@@ -13,7 +13,7 @@ process_study <- function(study, input_dir, debug_dir = NULL) {
 #' @importFrom ImmPortR query_filePath
 #' @importFrom flowCore read.FCSheader
 #' @importFrom gtools mixedsort
-summarize_study <- function(study, input_dir, debug_dir = NULL) {
+summarize_study <- function(study, input_dir, remove_dups = TRUE, debug_dir = NULL) {
   files <- query_filePath(study)
   files <- files[files$fileDetail == "Flow cytometry result", ]
   files <- files[grepl(".fcs$", files$fileName), ]
@@ -21,6 +21,9 @@ summarize_study <- function(study, input_dir, debug_dir = NULL) {
   files$sourceAccession <- NULL
   files$filePath <- file.path(input_dir, files$fileName)
   files <- unique(files)
+  if (remove_dups) {
+    files <- files[!duplicated(files$fileInfoId), ]
+  }
   rownames(files) <- files$fileName
 
   # check if files exist. If not, throw warning and fetch them
