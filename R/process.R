@@ -13,7 +13,7 @@ process_study <- function(study, input_dir, debug_dir = NULL) {
 #' @importFrom ImmPortR query_filePath
 #' @importFrom flowCore read.FCSheader
 #' @importFrom gtools mixedsort
-summarize_study <- function(study, input_dir, remove_dups = TRUE, debug_dir = NULL) {
+summarize_study <- function(study, input_dir, remove_dups = TRUE, standardize_markernames = TRUE, debug_dir = NULL) {
   files <- query_filePath(study)
   files <- files[files$fileDetail == "Flow cytometry result", ]
   files <- files[grepl(".fcs$", files$fileName), ]
@@ -68,6 +68,8 @@ summarize_study <- function(study, input_dir, remove_dups = TRUE, debug_dir = NU
   files$cytometerConfigName <- sapply(headers, function(x) x[[1]]["CYTOMETER CONFIG NAME"])
   files$cytometerConfigCreateDate <- sapply(headers, function(x) x[[1]]["CYTOMETER CONFIG CREATE DATE"])
 
+  markers <- get_markers(study)
+
   panels <- sapply(headers, function(x) {
     header <- x[[1]]
     par <- as.integer(header["$PAR"])
@@ -82,8 +84,10 @@ summarize_study <- function(study, input_dir, remove_dups = TRUE, debug_dir = NU
     }
 
     # standardize marker names
-    marker_exist <- !is.na(PNS) & PNS %in% names(MARKERS)
-    PNS[marker_exist] <- MARKERS[PNS[marker_exist]]
+    if (standardize_markernames) {
+      marker_exist <- !is.na(PNS) & PNS %in% names(markers)
+      PNS[marker_exist] <- markers[PNS[marker_exist]]
+    }
 
     PNN <- PNN[!is.na(PNS)]
     PNS <- PNS[!is.na(PNS)]
@@ -232,9 +236,10 @@ standardize_markernames <- function(gs, study, debug_dir = NULL) {
   }
   names(names_gs) <- colnames2(gs)
 
-  # retrieve standard marker names from MARKERS
-  marker_exist <- names_gs %in% names(MARKERS)
-  standards <- MARKERS[names_gs[marker_exist]]
+  # retrieve standard marker names from ImmPort
+  markers <- get_markers(study)
+  marker_exist <- names_gs %in% names(markers)
+  standards <- markers[names_gs[marker_exist]]
   names_gs[marker_exist] <- standards
 
   # assign the fixed marker names
@@ -581,4 +586,16 @@ apply_live_gate <- function(gs, study) {
       parallel_type = "multicore"
     )
   }
+}
+
+get_markers <- function(study) {
+  headers <- ImmPortR:::query(sprintf("fcs_header_marker/%s", study))
+
+  pns <- unique(headers[, c("pnsPreferred", "pnsReported")])
+  pns <- pns[!pns$pnsReported %in% headers$pnnReported, ]
+
+  markers <- pns$pnsPreferred
+  names(markers) <- pns$pnsReported
+
+  markers
 }
