@@ -2,7 +2,7 @@
 #' @export
 process_study <- function(study, input_dir, debug_dir = NULL) {
   # summarize files
-  files <- summarize_study(study, input_dir, debug_dir)
+  files <- summarize_study(study, input_dir, debug_dir = debug_dir)
   files_by_panel <- split(files, files$panel)
 
   # create gating set for each panel
@@ -114,7 +114,7 @@ summarize_study <- function(study, input_dir, remove_dups = TRUE, standardize_ma
   })
   message(paste(mixedsort(panels_clean), collapse = "\n"))
 
-  save_debug(files, "summarize_study", debug_dir = debug_dir)
+  save_debug(files, "summarize_study", debug_dir)
 
   files
 }
