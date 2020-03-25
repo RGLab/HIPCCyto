@@ -21,7 +21,7 @@ summarize_study <- function(study, input_dir, remove_dups = TRUE, standardize_ma
   files$sourceAccession <- NULL
   files$filePath <- file.path(input_dir, files$fileName)
   files <- unique(files)
-  if (remove_dups) {
+  if (isTRUE(remove_dups)) {
     files <- files[!duplicated(files$fileInfoId), ]
   }
   rownames(files) <- files$fileName
@@ -84,7 +84,7 @@ summarize_study <- function(study, input_dir, remove_dups = TRUE, standardize_ma
     }
 
     # standardize marker names
-    if (standardize_markernames) {
+    if (isTRUE(standardize_markernames)) {
       marker_exist <- !is.na(PNS) & PNS %in% names(markers)
       PNS[marker_exist] <- markers[PNS[marker_exist]]
     }
