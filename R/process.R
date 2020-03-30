@@ -471,8 +471,8 @@ create_fcEllipsoidGate <- function(flowClusters, targets) {
     "3" = c(min, min),
     "4" = c(max, min)
   )
-  ch1_lim <- lim_func[[1]](fr@exprs[, channels[1]]) * (1 - toRemove)
-  ch2_lim <- lim_func[[2]](fr@exprs[, channels[1]]) * (1 - toRemove)
+  ch1_lim <- lim_func[[1]](fr@exprs[, channels[1]], na.rm = TRUE) * (1 - toRemove)
+  ch2_lim <- lim_func[[2]](fr@exprs[, channels[1]], na.rm = TRUE) * (1 - toRemove)
 
   range <- switch(
     quadrant,
