@@ -32,6 +32,12 @@ DATA <- list(
   ),
   "SDY887" = list(
     toRemove = 0.04
+  ),
+  "SDY702" = list(
+    toRemove = 0.04
+  ),
+  "SDY1097" = list(
+    toRemove = 0.04
   )
 )
 
