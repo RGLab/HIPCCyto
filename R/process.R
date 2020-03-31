@@ -588,7 +588,7 @@ apply_live_gate <- function(gs, study) {
   }
 }
 
-get_markers <- function(study) {
+get_markers <- function(study, modify = TRUE) {
   headers <- ImmPortR:::query(sprintf("fcs_header_marker/%s", study))
 
   pns <- unique(headers[, c("pnsPreferred", "pnsReported")])
@@ -597,5 +597,9 @@ get_markers <- function(study) {
   markers <- pns$pnsPreferred
   names(markers) <- pns$pnsReported
 
+  if (isTRUE(modify)) {
+    toModify <- names(markers)[names(markers) %in% names(MARKERS)]
+    markers[toModify] <- markers[MARKERS[toModify]]
+  }
   markers
 }

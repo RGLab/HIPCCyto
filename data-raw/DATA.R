@@ -41,28 +41,14 @@ DATA <- list(
   )
 )
 
-
-headers <- Rlabkey::labkey.selectRows(
-  baseUrl = "https://www.immunespace.org",
-  folderPath = "/Studies",
-  schemaName = "immport",
-  queryName = "fcs_header_marker",
-  colFilter = Rlabkey::makeFilter(c("pns_preferred", "NOT_MISSING", "")),
-  colNameOpt = "fieldname"
-)
-headers <- unique(headers[, c("pns_reported", "pns_preferred")])
-MARKERS <- headers$pns_preferred
-names(MARKERS) <- headers$pns_reported
-MARKERS[c("TCRgd", "TCR GAMMA DELTA", "TCRGD", "gdTCR")] <- "TCRgd"
-MARKERS[c("STAT1", "STAT 1", "STAT-1")] <- "STAT1"
-MARKERS[c("STAT3", "STAT 3", "STAT-3")] <- "STAT3"
-MARKERS[c("STAT5", "STAT 5", "STAT-5")] <- "STAT5A"
-MARKERS[c("CD4/CD20", "CD4 / CD20", "CD4 /CD20", "CD4/ CD20", "CD20/CD4")] <- "CD4/CD20"
-MARKERS[c("Cd85j")] <- "LILRB1"
-MARKERS[c("Lin-1", "LIN1", "lin-1")] <- "LIN-1" # SDY144
-MARKERS[c("cd86")] <- "CD86" # SDY144
+MARKERS <- character()
+MARKERS[c("TCRgd", "TCR GAMMA DELTA", "TCRGD", "gdTCR")] <- "TCRgd" # SDY212 SDY514
+# MARKERS[c("STAT1", "STAT 1", "STAT-1")] <- "STAT1"
+# MARKERS[c("STAT3", "STAT 3", "STAT-3")] <- "STAT3"
+# MARKERS[c("STAT5", "STAT 5", "STAT-5")] <- "STAT5A"
+MARKERS[c("CD4/CD20", "CD4 / CD20", "CD4 /CD20", "CD4/ CD20", "CD20/CD4")] <- "CD4/CD20" # SDY212 SDY514
+MARKERS[c("Cd85j")] <- "CD85j" # SDY514
+MARKERS[c("Lin-1", "LIN1", "lin-1")] <- "LIN-1" # SDY144 SDY296
 MARKERS[c("SLAM")] <- "SLAN" # SDY144
-warning(which(table(headers$pns_reported) > 1))
-
 
 usethis::use_data(DATA, MARKERS, overwrite = TRUE, internal = TRUE)
