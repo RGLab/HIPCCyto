@@ -38,7 +38,8 @@ DATA <- list(
     target = c(100000, 30000)
   ),
   "SDY1097" = list(
-    toRemove = 0.04
+    toRemove = 0.04,
+    target = c(100000, 30000)
   )
 )
 
