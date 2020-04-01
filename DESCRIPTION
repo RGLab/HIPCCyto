@@ -18,8 +18,12 @@ Imports:
     openCyto,
     flowClust,
     assertthat,
-    gtools
+    gtools,
+    jsonlite,
+    ggplot2,
+    ggcyto,
+    ggridges
 Suggests:
     Rlabkey,
     usethis
-RoxygenNote: 7.0.2
+RoxygenNote: 7.1.0
