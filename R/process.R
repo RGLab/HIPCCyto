@@ -304,7 +304,7 @@ gate_gs <- function(gs, study, debug_dir = NULL) {
     print(system.time(apply_singlet_gate(gs, "FSC")))
     print(system.time(apply_singlet_gate(gs, "SSC")))
     print(system.time(apply_live_gate(gs, study)))
-    print(system.time(apply_lymphocyte_gate(gs, debug_dir)))
+    print(system.time(apply_lymphocyte_gate(gs, study, debug_dir)))
   }
 
   save_debug(gs, "gate_gs", debug_dir)
@@ -402,7 +402,7 @@ find_target <- function(flowClusters) {
   target <- est_mus$locations[which.max(est_mus$proportions), ]
 
   print(est_mus)
-  message(sprintf(">> Selecting FSC-A = %s and SSC-A = %s as target location", target[1], target[2]))
+  message(sprintf(">> Selecting FSC-A = %s and SSC-A = %s as target location...", target[1], target[2]))
 
   targets <- rep_len(list(target), length(flowClusters))
   names(targets) <- names(flowClusters)
@@ -410,9 +410,16 @@ find_target <- function(flowClusters) {
   targets
 }
 
-compute_targets <- function(gs, flowClusters) {
-  batch <- pData(gs)$batch
+compute_targets <- function(gs, flowClusters, study) {
+  target <- DATA[[study]]$target
+  if (!is.null(target)) {
+    message(sprintf(">> Using the predetermined target location (FSC-A = %s and SSC-A = %s)...", target[1], target[2]))
+    targets <- rep_len(list(target), length(flowClusters))
+    names(targets) <- names(flowClusters)
+    return(targets)
+  }
 
+  batch <- pData(gs)$batch
   if (is.null(batch)) {
     targets <- find_target(flowClusters)
   } else {
@@ -529,9 +536,9 @@ apply_singlet_gate <- function(gs, channel) {
 }
 
 #' @importFrom flowWorkspace gs_pop_add
-apply_lymphocyte_gate <- function(gs, debug_dir = NULL) {
+apply_lymphocyte_gate <- function(gs, study, debug_dir = NULL) {
   flowClusters <- compute_flowClusters(gs, debug_dir)
-  targets <- compute_targets(gs, flowClusters)
+  targets <- compute_targets(gs, flowClusters, study)
   gates <- create_fcEllipsoidGate(flowClusters, targets)
 
   message(">> Applying lymphocytes gate with flowClust by forward and side scatters (Lymphocytes)...")
