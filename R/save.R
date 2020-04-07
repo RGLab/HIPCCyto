@@ -42,7 +42,7 @@ save_gating_sets <- function(gsl, output_dir) {
       p <- autoplot(gs, node)
       ggsave(
         filename = sprintf("%s/gates/%s.pdf", path, node),
-        plot =  p,
+        plot = p,
         width = 50,
         height = 50,
         dpi = 320,
