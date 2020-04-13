@@ -19,7 +19,8 @@ DATA <- list(
     map = data.frame(
       alias = c("PE-Texas Red-A", "Qdot 565-A", "Qdot 565-A"),
       channels = c("PE-TxR-A", "QDOT 565-A", "QDot 565-A")
-    )
+    ),
+    target = c(60000, 5000)
   ),
   "SDY212" = list(
     batch = "EXPERIMENT NAME"
@@ -40,6 +41,9 @@ DATA <- list(
   "SDY1097" = list(
     toRemove = 0.04,
     target = c(100000, 30000)
+  ),
+  "SDY301" = list(
+    target = c(40000, 5000)
   )
 )
 
