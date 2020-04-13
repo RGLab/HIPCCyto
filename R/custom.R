@@ -72,7 +72,7 @@ compute_flowClusters_custom <- function(gs, debug_dir = NULL, nclust = 1) {
     fc@z <- matrix()
     fc@u <- matrix()
     fc
-  }, mc.cores = detectCores())
+  }, mc.cores = detect_cores())
   names(flowClusters) <- sampleNames(nc)
 
   save_debug(flowClusters, "compute_flowClusters", debug_dir)

@@ -38,7 +38,7 @@ summarize_study <- function(study, input_dir, remove_dups = TRUE, standardize_ma
   # read headers and summarize panels
   map <- DATA[[study]]$map
   message(">> Reading in fcs headers...")
-  headers <- mclapply(files$filePath, function(file) read.FCSheader(file, channel_alias = map), mc.cores = detectCores())
+  headers <- mclapply(files$filePath, function(file) read.FCSheader(file, channel_alias = map), mc.cores = detect_cores())
 
   files$tot <- sapply(headers, function(x) x[[1]]["$TOT"])
   files$par <- sapply(headers, function(x) x[[1]]["$PAR"])
@@ -154,7 +154,6 @@ process_panel <- function(files, debug_dir = NULL) {
 
 
 #' @importFrom ncdfFlow read.ncdfFlowSet
-#' @importFrom parallel detectCores
 create_nc <- function(filePath, study, debug_dir = NULL) {
   message(">> Reading files and creating a flow set...")
   map <- DATA[[study]]$map
@@ -162,7 +161,7 @@ create_nc <- function(filePath, study, debug_dir = NULL) {
   nc <- suppressMessages(read.ncdfFlowSet(
     filePath,
     channel_alias = map,
-    mc.cores = detectCores()
+    mc.cores = detect_cores()
   ))
 
   save_debug(nc, "create_nc", debug_dir)
@@ -296,7 +295,7 @@ gate_gs <- function(gs, study, debug_dir = NULL) {
   if (file != "") {
     message(sprintf(">> Applying gating template (%s)...", file))
     gt <- gatingTemplate(file)
-    gt_gating(gt, gs, mc.cores = detectCores(), parallel_type = "multicore")
+    gt_gating(gt, gs, mc.cores = detect_cores(), parallel_type = "multicore")
   } else {
     message(">> Gating template does not exist for this study...")
     message(">> Applying default gating methods...")
@@ -366,7 +365,7 @@ compute_flowClusters <- function(gs, debug_dir = NULL) {
     fc@z <- matrix()
     fc@u <- matrix()
     fc
-  }, mc.cores = detectCores())
+  }, mc.cores = detect_cores())
   names(flowClusters) <- sampleNames(nc)
 
   save_debug(flowClusters, "compute_flowClusters", debug_dir)
@@ -529,7 +528,7 @@ apply_singlet_gate <- function(gs, channel) {
       dims = sprintf("%s,%s", A, H),
       gating_method = "singletGate",
       gating_args = "prediction_level = 0.99, wider_gate = TRUE",
-      mc.cores = detectCores(),
+      mc.cores = detect_cores(),
       parallel_type = "multicore"
     )
   }
@@ -589,7 +588,7 @@ apply_live_gate <- function(gs, study) {
       gating_args = gating_args,
       groupBy = groupBy,
       collapseDataForGating = collapseDataForGating,
-      mc.cores = detectCores(),
+      mc.cores = detect_cores(),
       parallel_type = "multicore"
     )
   }
