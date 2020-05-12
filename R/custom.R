@@ -22,7 +22,7 @@ apply_lymphocyte_gate_custom <- function(gs, debug_dir= NULL, flowClusters = NUL
   names(targets) <- names(flowClusters)
   gates <- create_fcEllipsoidGate(flowClusters, targets)
 
-  message(">> Applying lymphocytes gate with flowClust by forward and side scatters (Lymphocytes)...")
+  catf(">> Applying lymphocytes gate with flowClust by forward and side scatters (Lymphocytes)...")
 
   # Pull off any old/wrong Lymphocyte gate
   if (any(grepl("Lymphocytes", gs_get_pop_paths(gs))))
@@ -59,7 +59,7 @@ apply_dump_gate_custom <- function(gs, plot=FALSE, gate_range = c(1.8,2.8)) {
 }
 
 compute_flowClusters_custom <- function(gs, debug_dir = NULL, nclust = 1) {
-  message(">> Computing for the optimal number of clusters (K) for each sample...")
+  catf(">> Computing for the optimal number of clusters (K) for each sample...")
   nc <- gs_pop_get_data(gs, get_parent(gs))
   flowClusters <- mclapply(sampleNames(nc), function(x) {
     fc <- flowClust(

@@ -10,11 +10,11 @@ save_gating_sets <- function(gsl, output_dir) {
     gs <- gsl[[i]]
 
     path <- file.path(output_dir, paste0("gs", i))
-    message(sprintf(">> Saving gating set #%s...", i))
-    message(path)
+    catf(sprintf(">> Saving gating set #%s...", i))
+    catf(path)
     save_gs(gs, path, overwrite = TRUE, cdf = "copy")
 
-    message(">> Saving gating set summary...")
+    catf(">> Saving gating set summary...")
     pd <- pData(gs)
     summary <- list(
       number_of_samples = length(gs),
@@ -38,7 +38,7 @@ save_gating_sets <- function(gsl, output_dir) {
     }
 
     for (node in gs_get_pop_paths(gs, path = 1)[-1]) {
-      message(sprintf(">> Saving QC plot of %s gate...", node))
+      catf(sprintf(">> Saving QC plot of %s gate...", node))
       p <- autoplot(gs, node)
       ggsave(
         filename = sprintf("%s/gates/%s.pdf", path, node),
@@ -62,7 +62,7 @@ save_gating_sets <- function(gsl, output_dir) {
       }
 
       marker <- paste(rev(getChannelMarker(nc[[1]], channel)[1, ]), collapse = "_")
-      message(sprintf(">> Saving QC plot of %s at the terminal node...", marker))
+      catf(sprintf(">> Saving QC plot of %s at the terminal node...", marker))
       ggsave(
         filename = sprintf("%s/markers/%s.pdf", path, gsub("/", "_", marker)),
         plot = p,

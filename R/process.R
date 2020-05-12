@@ -33,11 +33,11 @@ summarize_study <- function(study, input_dir, remove_dups = TRUE, standardize_ma
   }
 
   # summarize files
-  message(sprintf(">> There are %s fcs files in %s...", nrow(files), study))
+  catf(sprintf(">> There are %s fcs files in %s...", nrow(files), study))
 
   # read headers and summarize panels
   map <- DATA[[study]]$map
-  message(">> Reading in fcs headers...")
+  catf(">> Reading in fcs headers...")
   headers <- mclapply(files$filePath, function(file) read.FCSheader(file, channel_alias = map), mc.cores = detect_cores())
 
   files$tot <- sapply(headers, function(x) x[[1]]["$TOT"])
@@ -104,7 +104,7 @@ summarize_study <- function(study, input_dir, remove_dups = TRUE, standardize_ma
 
   # how many gating sets will be created
   # by panels, sample type, measurement technique, experiment accession
-  message(sprintf(">> There are %s panel(s)...", length(ps)))
+  catf(sprintf(">> There are %s panel(s)...", length(ps)))
   panels_clean <- sapply(strsplit(ps, "; "), function(x) {
     if (length(x) == 0) {
       ""
@@ -112,7 +112,7 @@ summarize_study <- function(study, input_dir, remove_dups = TRUE, standardize_ma
       paste(gsub(" \\(.+\\)$", "", x), collapse = " | ")
     }
   })
-  message(paste(mixedsort(panels_clean), collapse = "\n"))
+  catf(paste(mixedsort(panels_clean), collapse = "\n"))
 
   save_debug(files, "summarize_study", debug_dir)
 
@@ -125,9 +125,9 @@ process_panel <- function(files, debug_dir = NULL) {
   panel <- unique(files$panel)
   stopifnot(length(study) == 1, length(panel) == 1)
 
-  message(paste(rep("=", times = 80), collapse = ""))
-  message(sprintf(">> Processing %s fcs files for this panel...", nrow(files)))
-  message(paste(strsplit(panel, split = "; ")[[1]], collapse = "\n"))
+  catf(paste(rep("=", times = 80), collapse = ""))
+  catf(sprintf(">> Processing %s fcs files for this panel...", nrow(files)))
+  catf(paste(strsplit(panel, split = "; ")[[1]], collapse = "\n"))
 
   # load files
   print(system.time(nc <- create_nc(files$filePath, study, debug_dir)))
@@ -155,7 +155,7 @@ process_panel <- function(files, debug_dir = NULL) {
 
 #' @importFrom ncdfFlow read.ncdfFlowSet
 create_nc <- function(filePath, study, debug_dir = NULL) {
-  message(">> Reading files and creating a flow set...")
+  catf(">> Reading files and creating a flow set...")
   map <- DATA[[study]]$map
 
   nc <- suppressMessages(read.ncdfFlowSet(
@@ -171,7 +171,7 @@ create_nc <- function(filePath, study, debug_dir = NULL) {
 
 #' @importFrom ncdfFlow phenoData phenoData<-
 merge_metadata <- function(nc, files, study, debug_dir = NULL) {
-  message(">> Merging metedata...")
+  catf(">> Merging metedata...")
   phenoData(nc)$participant_id <- files[phenoData(nc)$name, ]$subjectAccession
   phenoData(nc)$age_reported <- files[phenoData(nc)$name, ]$ageEvent
   phenoData(nc)$gender <- files[phenoData(nc)$name, ]$gender
@@ -191,7 +191,7 @@ merge_metadata <- function(nc, files, study, debug_dir = NULL) {
 
 #' @importFrom flowCore fsApply description
 merge_batch <- function(nc, study, debug_dir = NULL) {
-  message(">> Merging batch column...")
+  catf(">> Merging batch column...")
   keyword <- DATA[[study]]$batch
 
   if (!is.null(keyword)) {
@@ -216,7 +216,7 @@ merge_batch <- function(nc, study, debug_dir = NULL) {
 
 #' @importFrom flowWorkspace GatingSet
 create_gs <- function(nc, study, debug_dir = NULL) {
-  message(">> Creating a gating set...")
+  catf(">> Creating a gating set...")
   gs <- GatingSet(nc)
 
   save_debug(gs, "create_gs", debug_dir)
@@ -226,7 +226,7 @@ create_gs <- function(nc, study, debug_dir = NULL) {
 
 #' @importFrom flowWorkspace markernames markernames<-
 standardize_markernames <- function(gs, study, debug_dir = NULL) {
-  message(">> Standardizing marker names...")
+  catf(">> Standardizing marker names...")
 
   # get current marker names and name them with channel names
   names_gs <- markernames(gs)
@@ -243,7 +243,7 @@ standardize_markernames <- function(gs, study, debug_dir = NULL) {
 
   # assign the fixed marker names
   standards <- standards[standards != names(standards)]
-  message(paste(paste(names(standards), standards, sep = " -> "), collapse = "\n"))
+  catf(paste(paste(names(standards), standards, sep = " -> "), collapse = "\n"))
   markernames(gs) <- names_gs
 
   save_debug(gs, "standardize_markernames", debug_dir)
@@ -254,7 +254,7 @@ standardize_markernames <- function(gs, study, debug_dir = NULL) {
 #' @importFrom flowWorkspace gs_pop_get_data compensate
 #' @importFrom flowCore spillover
 compensate_gs <- function(gs, study, debug_dir = NULL) {
-  message(">> Applying compensation...")
+  catf(">> Applying compensation...")
   nc <- gs_pop_get_data(gs)
   cols <- colnames(gs)
   comp <- fsApply(nc, function(x) {
@@ -275,7 +275,7 @@ compensate_gs <- function(gs, study, debug_dir = NULL) {
 #' @importFrom flowWorkspace colnames transform
 #' @importFrom flowCore estimateLogicle
 transform_gs <- function(gs, study, debug_dir = NULL) {
-  message(">> Applying transformation...")
+  catf(">> Applying transformation...")
   channels <- colnames2(gs)
   if (length(channels) > 0) {
     trans <- estimateLogicle(gs[[1]], channels)
@@ -293,12 +293,12 @@ gate_gs <- function(gs, study, debug_dir = NULL) {
   file <- system.file(filePath, package = "HIPCCyto")
 
   if (file != "") {
-    message(sprintf(">> Applying gating template (%s)...", file))
+    catf(sprintf(">> Applying gating template (%s)...", file))
     gt <- gatingTemplate(file)
     gt_gating(gt, gs, mc.cores = detect_cores(), parallel_type = "multicore")
   } else {
-    message(">> Gating template does not exist for this study...")
-    message(">> Applying default gating methods...")
+    catf(">> Gating template does not exist for this study...")
+    catf(">> Applying default gating methods...")
     print(system.time(apply_quadrant_gate(gs, study)))
     print(system.time(apply_singlet_gate(gs, "FSC")))
     print(system.time(apply_singlet_gate(gs, "SSC")))
@@ -319,7 +319,7 @@ gate_gs <- function(gs, study, debug_dir = NULL) {
 save_debug <- function(obj, func, debug_dir = NULL) {
   if (!is.null(debug_dir)) {
     path <- tempfile(paste0(func, "_"), debug_dir)
-    message(sprintf(">> Storing intermediate file to %s for debugging...", path))
+    catf(sprintf(">> Storing intermediate file to %s for debugging...", path))
     if (is(obj, "ncdfFlowSet")) {
       save_ncfs(obj, path, cdf = "copy")
     } else if (is(obj, "GatingSet")) {
@@ -350,7 +350,7 @@ get_parent <- function(gs) {
 #' @importFrom flowWorkspace gs_pop_get_data
 #' @importFrom flowClust flowClust
 compute_flowClusters <- function(gs, debug_dir = NULL) {
-  message(">> Computing for the optimal number of clusters (K) for each sample...")
+  catf(">> Computing for the optimal number of clusters (K) for each sample...")
   nc <- gs_pop_get_data(gs, get_parent(gs))
   flowClusters <- mclapply(sampleNames(nc), function(x) {
     fcl <- flowClust(
@@ -381,7 +381,7 @@ select_cluster <- function(fitted_means, target) {
 
 #' @importFrom flowClust getEstimates
 find_target <- function(flowClusters) {
-  message(">> Computing the target location of the lymphocyte clusters...")
+  catf(">> Computing the target location of the lymphocyte clusters...")
   mus <- lapply(flowClusters, function(x) {
     est <- getEstimates(x)
 
@@ -401,7 +401,7 @@ find_target <- function(flowClusters) {
   target <- est_mus$locations[which.max(est_mus$proportions), ]
 
   print(est_mus)
-  message(sprintf(">> Selecting FSC-A = %s and SSC-A = %s as target location...", target[1], target[2]))
+  catf(sprintf(">> Selecting FSC-A = %s and SSC-A = %s as target location...", target[1], target[2]))
 
   targets <- rep_len(list(target), length(flowClusters))
   names(targets) <- names(flowClusters)
@@ -412,7 +412,7 @@ find_target <- function(flowClusters) {
 compute_targets <- function(gs, flowClusters, study) {
   target <- DATA[[study]]$target
   if (!is.null(target)) {
-    message(sprintf(">> Using the predetermined target location (FSC-A = %s and SSC-A = %s)...", target[1], target[2]))
+    catf(sprintf(">> Using the predetermined target location (FSC-A = %s and SSC-A = %s)...", target[1], target[2]))
     targets <- rep_len(list(target), length(flowClusters))
     names(targets) <- names(flowClusters)
     return(targets)
@@ -426,7 +426,7 @@ compute_targets <- function(gs, flowClusters, study) {
     pd <- split(pd, factor(pd$batch, exclude = NULL))
 
     list_targets <- lapply(pd, function(x) {
-      message(unique(x$batch))
+      catf(unique(x$batch))
       find_target(flowClusters[x$name])
     })
     targets <- unlist(unname(list_targets), recursive = FALSE)
@@ -493,13 +493,13 @@ create_fcEllipsoidGate <- function(flowClusters, targets) {
 
 #' @importFrom openCyto register_plugins
 apply_quadrant_gate <- function(gs, study) {
-  message(">> Applying quadrant gate...")
+  catf(">> Applying quadrant gate...")
   register_plugins(fun = .quadrantGate, methodName = "quadrantGate")
 
   gating_args <- "quadrant = 1"
   toRemove <- DATA[[study]]$toRemove
   if (!is.null(toRemove)) {
-    message(sprintf(">> Removing %s%% of FSC-A and SSC-A", signif(toRemove, 3) * 100))
+    catf(sprintf(">> Removing %s%% of FSC-A and SSC-A", signif(toRemove, 3) * 100))
     gating_args <- sprintf("%s, toRemove = %s", gating_args, toRemove)
   }
 
@@ -519,7 +519,7 @@ apply_singlet_gate <- function(gs, channel) {
   A <- sprintf("%s-A", channel)
   H <- sprintf("%s-H", channel)
   if (H %in% colnames(gs)) {
-    message(sprintf(">> Applying singlet gate by scatter channel (%s)...", alias))
+    catf(sprintf(">> Applying singlet gate by scatter channel (%s)...", alias))
     gs_add_gating_method(
       gs = gs,
       alias = alias,
@@ -540,7 +540,7 @@ apply_lymphocyte_gate <- function(gs, study, debug_dir = NULL) {
   targets <- compute_targets(gs, flowClusters, study)
   gates <- create_fcEllipsoidGate(flowClusters, targets)
 
-  message(">> Applying lymphocytes gate with flowClust by forward and side scatters (Lymphocytes)...")
+  catf(">> Applying lymphocytes gate with flowClust by forward and side scatters (Lymphocytes)...")
   gs_pop_add(
     gs = gs,
     gate = gates,
@@ -554,11 +554,11 @@ get_live_marker <- function(gs) {
   live <- grep("^(L|l)ive|LD|(V|v)iability$", markernames(gs), value = TRUE)
 
   if (length(live) == 0) {
-    message(">> There is no viability dye channel in this gating set...")
+    catf(">> There is no viability dye channel in this gating set...")
     return(NULL)
   } else if (length(live) > 1) {
-    message(">> There are more than one viability dye channel in this gating set...")
-    message(paste(live, collapse = ", "))
+    catf(">> There are more than one viability dye channel in this gating set...")
+    catf(paste(live, collapse = ", "))
   }
 
   live
@@ -572,10 +572,10 @@ apply_live_gate <- function(gs, study) {
     collapseDataForGating <- !is.null(pData(gs)$batch)
     groupBy <- ifelse(collapseDataForGating, "batch", NA)
 
-    message(sprintf(">> Applying live/dead gate with %s (%s) by %s (Live)...", gating_method, gating_args, live))
+    catf(sprintf(">> Applying live/dead gate with %s (%s) by %s (Live)...", gating_method, gating_args, live))
 
     if (collapseDataForGating) {
-      message(sprintf(">> Collapsing data for gating by %s...", groupBy))
+      catf(sprintf(">> Collapsing data for gating by %s...", groupBy))
     }
 
     gs_add_gating_method(
