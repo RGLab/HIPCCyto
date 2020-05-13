@@ -303,6 +303,7 @@ gate_gs <- function(gs, study, debug_dir = NULL) {
     print(system.time(apply_singlet_gate(gs, "FSC")))
     print(system.time(apply_singlet_gate(gs, "SSC")))
     print(system.time(apply_live_gate(gs, study)))
+    print(system.time(apply_nondebris_gate(gs)))
     print(system.time(apply_lymphocyte_gate(gs, study, debug_dir)))
   }
 
@@ -384,13 +385,6 @@ find_target <- function(flowClusters) {
   catf(">> Computing the target location of the lymphocyte clusters...")
   mus <- lapply(flowClusters, function(x) {
     est <- getEstimates(x)
-
-    if (x@K > 1) {
-      to_remove <- select_cluster(est$locations, c(0, 0))
-      est$proportions <- est$proportions[-to_remove]
-      est$locations <- est$locations[-to_remove, , drop = FALSE]
-    }
-
     est$locations[which.max(est$proportions), ]
   })
   mus <- do.call(rbind, mus)
@@ -527,11 +521,29 @@ apply_singlet_gate <- function(gs, channel) {
       parent = get_parent(gs),
       dims = sprintf("%s,%s", A, H),
       gating_method = "singletGate",
-      gating_args = "prediction_level = 0.99, wider_gate = TRUE",
-      mc.cores = detect_cores(),
-      parallel_type = "multicore"
+      gating_args = "prediction_level = 0.99, wider_gate = TRUE"
     )
   }
+}
+
+#' @importFrom flowWorkspace recompute
+apply_nondebris_gate <- function(gs) {
+  gates <- lapply(sampleNames(gs), function(x) {
+    fsc <- exprs(gh_pop_get_data(gs[[x]], get_parent(gs)))[, "FSC-A"]
+    den <- density(fsc)
+    lim <- den$x[ggpmisc:::find_peaks(-den$y)][1]
+    rectangleGate("FSC-A" = c(lim, Inf))
+  })
+  names(gates) <- sampleNames(gs)
+
+  catf(">> Applying non-debris gate by forward scatter (Nondebris)...")
+  gs_pop_add(
+    gs = gs,
+    gate = gates,
+    name = "Nondebris",
+    parent = get_parent(gs)
+  )
+  recompute(gs, get_parent(gs))
 }
 
 #' @importFrom flowWorkspace gs_pop_add
@@ -545,9 +557,9 @@ apply_lymphocyte_gate <- function(gs, study, debug_dir = NULL) {
     gs = gs,
     gate = gates,
     name = "Lymphocytes",
-    parent = get_parent(gs),
-    recompute = TRUE
+    parent = get_parent(gs)
   )
+  recompute(gs, get_parent(gs))
 }
 
 get_live_marker <- function(gs) {
