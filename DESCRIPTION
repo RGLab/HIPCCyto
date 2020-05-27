@@ -1,6 +1,6 @@
 Package: HIPCCyto
 Title: HIPC Cytometry
-Version: 0.0.0.9020
+Version: 0.0.0.9021
 Authors@R: 
     person(given = "Ju Yeong",
            family = "Kim",
@@ -23,7 +23,9 @@ Imports:
     ggplot2,
     ggcyto,
     ggridges,
-    ggpmisc
+    ggpmisc,
+    slurmR,
+    withr
 Suggests:
     Rlabkey,
     usethis

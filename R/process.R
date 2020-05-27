@@ -348,26 +348,40 @@ get_parent <- function(gs) {
   rev(gs_get_pop_paths(gs, path = 1))[1]
 }
 
-#' @importFrom flowWorkspace gs_pop_get_data
 #' @importFrom flowClust flowClust
+flowclust <- function(x) {
+  fcl <- flowClust(
+    x = x,
+    K = 1:5,
+    criterion = "ICL",
+    trans = 0,
+    min.count = -1,
+    max.count = -1
+  )
+  fc <- fcl@.Data[[fcl@index]]
+  fc@z <- matrix()
+  fc@u <- matrix()
+  fc
+}
+
+#' @importFrom flowWorkspace gs_pop_get_data
+#' @importFrom slurmR slurm_available Slurm_lapply
 compute_flowClusters <- function(gs, debug_dir = NULL) {
   catf(">> Computing for the optimal number of clusters (K) for each sample...")
   nc <- gs_pop_get_data(gs, get_parent(gs))
-  flowClusters <- mclapply(sampleNames(nc), function(x) {
-    fcl <- flowClust(
-      x = nc[[x]]@exprs[, c("FSC-A", "SSC-A")],
-      K = 1:5,
-      criterion = "ICL",
-      trans = 0,
-      min.count = -1,
-      max.count = -1
-    )
-    fc <- fcl@.Data[[fcl@index]]
-    fc@z <- matrix()
-    fc@u <- matrix()
-    fc
-  }, mc.cores = detect_cores())
-  names(flowClusters) <- sampleNames(nc)
+
+  if (slurm_available()) {
+    catf(">> Submitting flowClust jobs to slurm...")
+    ex <- lapply(sampleNames(nc), function(x) nc[[x]]@exprs[, c("FSC-A", "SSC-A")])
+    names(ex) <- sampleNames(nc)
+    flowClusters <- Slurm_lapply(ex, flowclust, njobs = length(ex), mc.cores = 1L)
+  } else {
+    flowClusters <- mclapply(sampleNames(nc), function(x) {
+      ex <- nc[[x]]@exprs[, c("FSC-A", "SSC-A")]
+      flowclust(ex)
+    }, mc.cores = detect_cores())
+    names(flowClusters) <- sampleNames(nc)
+  }
 
   save_debug(flowClusters, "compute_flowClusters", debug_dir)
 
@@ -381,6 +395,7 @@ select_cluster <- function(fitted_means, target) {
 }
 
 #' @importFrom flowClust getEstimates
+#' @importFrom withr with_options
 find_target <- function(flowClusters) {
   catf(">> Computing the target location of the lymphocyte clusters...")
   mus <- lapply(flowClusters, function(x) {
@@ -389,7 +404,10 @@ find_target <- function(flowClusters) {
   })
   mus <- do.call(rbind, mus)
   colnames(mus) <- c("FSC", "SSC")
-  fcl_mus <- flowClust(mus, K = 1:5, criterion = "ICL", trans = 0, min.count = -1, max.count = -1)
+  fcl_mus <- with_options(
+    list(mc.cores = 1L),
+    flowClust(mus, K = 1:5, criterion = "ICL", trans = 0, min.count = -1, max.count = -1)
+  )
   k_mus <- ifelse(length(fcl_mus@index) == 0, 1, fcl_mus@index)
   est_mus <- getEstimates(fcl_mus@.Data[[k_mus]])
   target <- est_mus$locations[which.max(est_mus$proportions), ]
@@ -528,15 +546,22 @@ apply_singlet_gate <- function(gs, channel) {
 
 #' @importFrom flowWorkspace recompute
 apply_nondebris_gate <- function(gs) {
+  catf(">> Applying non-debris gate by forward scatter (Nondebris)...")
+
   gates <- lapply(sampleNames(gs), function(x) {
     fsc <- exprs(gh_pop_get_data(gs[[x]], get_parent(gs)))[, "FSC-A"]
     den <- density(fsc)
-    lim <- den$x[ggpmisc:::find_peaks(-den$y)][1]
+    peaks <- ggpmisc:::find_peaks(-den$y)
+    if (peaks == 0) {
+      grad <- diff(den$y) / diff(den$x)
+      peaks <- ggpmisc:::find_peaks(-grad)
+    }
+    lim <- den$x[peaks][1]
+    catf(x, lim)
     rectangleGate("FSC-A" = c(lim, Inf))
   })
   names(gates) <- sampleNames(gs)
 
-  catf(">> Applying non-debris gate by forward scatter (Nondebris)...")
   gs_pop_add(
     gs = gs,
     gate = gates,
