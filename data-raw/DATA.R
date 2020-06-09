@@ -44,6 +44,12 @@ DATA <- list(
   ),
   "SDY301" = list(
     target = c(40000, 5000)
+  ),
+  "SDY387" = list(
+    target = c(60000, 6000)
+  ),
+  "SDY368" = list(
+    target = c(60000, 6000)
   )
 )
 
