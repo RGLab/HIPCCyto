@@ -1,0 +1,285 @@
+---
+title: "Gating Set QC Report"
+output: html_document
+params:
+  input_dir: ""
+  output_dir: ""
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+```
+
+```{r libraries, include=FALSE}
+library(HIPCCyto)
+library(flowWorkspace)
+library(ggcyto)
+library(plotly)
+library(htmltools)
+library(htmlwidgets)
+```
+
+```{r load}
+gs <- load_gs(file.path(params$input_dir, "gs"))
+pd <- pData(gs)
+s <- summarize_gating_set(gs)
+```
+
+```{r header}
+h2(s$study)
+h3("input_dir:")
+params$input_dir
+```
+
+
+---
+
+
+## Summary
+
+```{r summary}
+knitr::kable(
+  data.frame(
+    "n_samples" = length(gs), 
+    "n_markers" = length(markernames(gs)),
+    "n_gates" = length(gs_get_pop_paths(gs, path = 1)),
+    "n_participants" = length(unique(pd$participant_id))
+  ),
+  align = "c"
+)
+```
+
+### Panel
+
+```{r panel}
+knitr::kable(markernames(gs), col.names = "Marker")
+```
+
+### Sample types
+
+```{r sample-types}
+table(pd$type)
+```
+
+### Timepoints
+
+```{r timepoints}
+table(paste(pd$study_time_collected, pd$study_time_collected_unit))
+```
+
+### Cohorts
+
+```{r cohorts}
+table(pd$cohort)
+```
+
+### Batches
+
+```{r batches}
+table(pd$batch)
+```
+
+
+---
+
+
+## Custom processing parameters
+
+```{r parameters}
+HIPCCyto:::DATA[[s$study]]
+```
+
+
+---
+
+
+## Gating
+
+```{r gating}
+flowWorkspace::plot(gs)
+gates <- HIPCCyto:::get_nodes(gs)
+```
+
+### Live gates
+
+```{r live, fig.height=8, fig.width=8}
+if ("Live" %in% gates) {
+  suppressWarnings(p <- qc_gates(gs, "Live"))
+  ggplotly(p) %>%
+    onRender("
+      function(el) {
+        el.on('plotly_click', function(d) { 
+          i = d.points[0].data.text.split('<br />')[2].trim();
+          $('.dropdown-menu li.active').removeClass('active');
+          $('.dropdown-tab').parent('li').eq(i).addClass('active');
+          $('.tab-content div.active').removeClass('active');
+          $('#' + i).addClass('active');
+          window.open('#' + i, '_self');
+        });
+      } 
+    ")
+}
+```
+
+### Non-debris gates
+
+```{r nondebris, fig.height=8, fig.width=8}
+if ("Nondebris" %in% gates) {
+  suppressWarnings(p <- qc_gates(gs, "Nondebris"))
+  ggplotly(p) %>%
+    onRender("
+      function(el) {
+        el.on('plotly_click', function(d) { 
+          i = d.points[0].data.text.split('<br />')[2].trim();
+          $('.dropdown-menu li.active').removeClass('active');
+          $('.dropdown-tab').parent('li').eq(i).addClass('active');
+          $('.tab-content div.active').removeClass('active');
+          $('#' + i).addClass('active');
+          window.open('#' + i, '_self');
+        });
+      } 
+    ")
+}
+```
+
+### Lymphocytes gates
+
+```{r lymphocytes, fig.height=8, fig.width=8}
+suppressWarnings(p <- qc_gates(gs, "Lymphocytes"))
+ggplotly(p) %>%
+  onRender("
+    function(el) {
+      el.on('plotly_click', function(d) { 
+        i = d.points[0].data.text.split('<br />')[1].trim();
+        $('.dropdown-menu li.active').removeClass('active');
+        $('.dropdown-tab').parent('li').eq(i).addClass('active');
+        $('.tab-content div.active').removeClass('active');
+        $('#' + i).addClass('active');
+        window.open('#' + i, '_self');
+      });
+    } 
+  ")
+```
+
+
+---
+
+
+## Marker expression distibutions after lymphocyte gate
+
+```{r markers}
+img(src = rmarkdown:::base64_encode_file(file.path(params$output_dir, "markers.png"), base64enc::base64encode))
+```
+
+
+---
+
+
+## By Sample
+
+```{r samples}
+sample_names <- sampleNames(gs)
+plotInfo <- lapply(
+  seq_along(sample_names), 
+  function(i) {
+    list(
+      name = sample_names[i],
+      i = i,
+      gates = rmarkdown:::base64_encode_file(file.path(params$output_dir, sprintf("gates/%s.png", sample_names[i])), base64enc::base64encode),
+      spillover = rmarkdown:::base64_encode_file(file.path(params$output_dir, sprintf("spillover/%s.png", sample_names[i])), base64enc::base64encode),
+      pdata = jsonlite::toJSON(pd[i, ], pretty = TRUE)
+    )
+  })
+```
+
+<div id="plots">
+<div class="dropdown">
+<button class="dropdown-toggle" type="button" data-toggle="dropdown">
+Select Plot Type
+<span class="caret"></span>
+</button>
+<ul class="dropdown-menu">
+      
+```{r dropdown}
+tagList(
+  lapply(
+    plotInfo,
+    function(thisPlotInfo) {
+      if (thisPlotInfo$name == plotInfo[[1]]$name) {
+        class <- "active"
+      } else {
+        class <- ""
+      }
+      tags$li(
+        class = class,
+        tags$a(
+          href = paste0("#", thisPlotInfo$i),
+          class = "dropdown-tab",
+          thisPlotInfo$name
+        )
+      )
+    }
+  )
+)
+```
+      
+</ul>
+</div>
+<div class="tab-content">
+    
+```{r tabs}
+tagList(
+  lapply(
+    plotInfo, 
+    function(thisPlotInfo) {
+      if (thisPlotInfo$name == plotInfo[[1]]$name) {
+        class <- "tab-pane active"
+      } else {
+        class <- "tab-pane"
+      }
+      div(
+        id = thisPlotInfo$i,
+        class = class,
+        h2(thisPlotInfo$name),
+        h3("Gates"),
+        img(src = thisPlotInfo$gates),
+        h3("spillover matrix"),
+        img(src = thisPlotInfo$spillover),
+        h3("pData"),
+        code(thisPlotInfo$pdata)
+      )
+    }
+  )
+)
+```
+</div>
+</div>
+
+<style>
+.dropdown-menu {
+   max-height:200px;
+   overflow:scroll; 
+}
+</style>
+
+<script type='text/javascript'>
+// This makes the dropdown work  
+$('.dropdown-tab').click(function (e) {
+    $('.dropdown-menu li.active').removeClass('active');
+    $(this).parent('li').addClass('active');
+    $('.tab-content div.active').removeClass('active');
+    $($(this).attr('href')).addClass('active');
+})
+</script>
+
+
+---
+
+
+## Session info
+
+```{r session-info}
+sessionInfo()
+```

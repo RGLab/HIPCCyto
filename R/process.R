@@ -172,6 +172,7 @@ create_nc <- function(filePath, study, debug_dir = NULL) {
 #' @importFrom ncdfFlow phenoData phenoData<-
 merge_metadata <- function(nc, files, study, debug_dir = NULL) {
   catf(">> Merging metedata...")
+  phenoData(nc)$study_accession <- files[phenoData(nc)$name, ]$studyAccession
   phenoData(nc)$participant_id <- files[phenoData(nc)$name, ]$subjectAccession
   phenoData(nc)$age_reported <- files[phenoData(nc)$name, ]$ageEvent
   phenoData(nc)$gender <- files[phenoData(nc)$name, ]$gender
