@@ -1,6 +1,6 @@
 ---
-title: "Gating Set QC Report"
-output: html_document
+title: "Gating Set QC"
+output: flexdashboard::flex_dashboard
 params:
   input_dir: ""
   output_dir: ""
@@ -17,6 +17,7 @@ library(HIPCCyto)
 library(flowWorkspace)
 library(ggcyto)
 library(plotly)
+library(trelliscopejs)
 library(htmltools)
 library(htmlwidgets)
 ```
@@ -27,19 +28,18 @@ pd <- pData(gs)
 s <- summarize_gating_set(gs)
 ```
 
-```{r header}
-h2(s$study)
-h3("input_dir:")
-params$input_dir
-```
+Summary
+===================================== 
 
+Column 
+-------------------------------------
 
----
-
-
-## Summary
+### Summary
 
 ```{r summary}
+h4(s$study)
+params$input_dir
+
 knitr::kable(
   data.frame(
     "n_samples" = length(gs), 
@@ -56,6 +56,10 @@ knitr::kable(
 ```{r panel}
 knitr::kable(markernames(gs), col.names = "Marker")
 ```
+
+
+Column {.tabset}
+-------------------------------------
 
 ### Sample types
 
@@ -81,21 +85,21 @@ table(pd$cohort)
 table(pd$batch)
 ```
 
-
----
-
-
-## Custom processing parameters
+### Custom processing parameters
 
 ```{r parameters}
 HIPCCyto:::DATA[[s$study]]
 ```
 
 
----
 
+Gating
+=====================================
 
-## Gating
+Column {.tabset}
+-------------------------------------
+
+### Nodes
 
 ```{r gating}
 flowWorkspace::plot(gs)
@@ -104,80 +108,116 @@ gates <- HIPCCyto:::get_nodes(gs)
 
 ### Live gates
 
-```{r live, fig.height=8, fig.width=8}
+```{r live}
 if ("Live" %in% gates) {
   suppressWarnings(p <- qc_gates(gs, "Live"))
   ggplotly(p) %>%
     onRender("
       function(el) {
         el.on('plotly_click', function(d) { 
-          i = d.points[0].data.text.split('<br />')[2].trim();
+          txt = d.points[0].text.split('<br />');
+          console.log(txt);
+          i = txt[txt.length - 1].trim();
+          id = txt.filter(v => /sample/.test(v))[0].replace('sample: ', '');
+          id = id.substring(0, id.search('.fcs')+4).trim();
+          console.log(id);
           $('.dropdown-menu li.active').removeClass('active');
-          $('.dropdown-tab').parent('li').eq(i).addClass('active');
-          $('.tab-content div.active').removeClass('active');
-          $('#' + i).addClass('active');
-          window.open('#' + i, '_self');
+          $('.dropdown-tab').parent('li').eq(i-1).addClass('active');
+          $('#samples div.active').removeClass('active');
+          $('#' + CSS.escape(id)).addClass('active');
+          
+          window.open('#pdata', '_self');
+          var checkExist = setInterval(function() {
+            if ($('input[type=search]').length > 0) {
+              $('input[type=search]').val(id).keyup();
+              clearInterval(checkExist);
+            }
+          }, 100);
+          window.open('#by-sample', '_self');
         });
       } 
     ")
+} else {
+  print("no Live gates")
 }
 ```
 
 ### Non-debris gates
 
-```{r nondebris, fig.height=8, fig.width=8}
+```{r nondebris}
 if ("Nondebris" %in% gates) {
   suppressWarnings(p <- qc_gates(gs, "Nondebris"))
   ggplotly(p) %>%
     onRender("
       function(el) {
         el.on('plotly_click', function(d) { 
-          i = d.points[0].data.text.split('<br />')[2].trim();
+          txt = d.points[0].text.split('<br />');
+          console.log(txt);
+          i = txt[txt.length - 1].trim();
+          id = txt.filter(v => /sample/.test(v))[0].replace('sample: ', '');
+          id = id.substring(0, id.search('.fcs')+4).trim();
+          console.log(id);
           $('.dropdown-menu li.active').removeClass('active');
-          $('.dropdown-tab').parent('li').eq(i).addClass('active');
-          $('.tab-content div.active').removeClass('active');
-          $('#' + i).addClass('active');
-          window.open('#' + i, '_self');
+          $('.dropdown-tab').parent('li').eq(i-1).addClass('active');
+          $('#samples div.active').removeClass('active');
+          $('#' + CSS.escape(id)).addClass('active');
+          
+          window.open('#pdata', '_self');
+          var checkExist = setInterval(function() {
+            if ($('input[type=search]').length > 0) {
+              $('input[type=search]').val(id).keyup();
+              clearInterval(checkExist);
+            }
+          }, 100);
+          window.open('#by-sample', '_self');
         });
       } 
     ")
+} else {
+  print("no Nondebris gates")
 }
 ```
 
 ### Lymphocytes gates
 
-```{r lymphocytes, fig.height=8, fig.width=8}
+```{r lymphocytes}
+if ("Lymphocytes" %in% gates) {
 suppressWarnings(p <- qc_gates(gs, "Lymphocytes"))
 ggplotly(p) %>%
   onRender("
     function(el) {
-      el.on('plotly_click', function(d) { 
-        i = d.points[0].data.text.split('<br />')[1].trim();
+      el.on('plotly_click', function(d) {
+        txt = d.points[0].data.text.split('<br />');
+        console.log(txt);
+        i = txt[txt.length - 1].trim();
+        id = txt.filter(v => /sample/.test(v))[0].replace('sample: ', '');
+        id = id.substring(0, id.search('.fcs')+4).trim();
+        console.log(id);
         $('.dropdown-menu li.active').removeClass('active');
-        $('.dropdown-tab').parent('li').eq(i).addClass('active');
-        $('.tab-content div.active').removeClass('active');
-        $('#' + i).addClass('active');
-        window.open('#' + i, '_self');
+        $('.dropdown-tab').parent('li').eq(i-1).addClass('active');
+        $('#samples div.active').removeClass('active');
+        $('#' + CSS.escape(id)).addClass('active');
+        
+        window.open('#pdata', '_self');
+        var checkExist = setInterval(function() {
+          if ($('input[type=search]').length > 0) {
+            $('input[type=search]').val(id).keyup();
+            clearInterval(checkExist);
+          }
+        }, 100);
+        window.open('#by-sample', '_self');
       });
     } 
   ")
+} else {
+  print("no Lymphocytes gates")
+}
 ```
 
 
----
 
-
-## Marker expression distibutions after lymphocyte gate
-
-```{r markers}
-img(src = rmarkdown:::base64_encode_file(file.path(params$output_dir, "markers.png"), base64enc::base64encode))
-```
-
-
----
-
-
-## By Sample
+By Sample
+===================================== 
 
 ```{r samples}
 sample_names <- sampleNames(gs)
@@ -188,8 +228,7 @@ plotInfo <- lapply(
       name = sample_names[i],
       i = i,
       gates = rmarkdown:::base64_encode_file(file.path(params$output_dir, sprintf("gates/%s.png", sample_names[i])), base64enc::base64encode),
-      spillover = rmarkdown:::base64_encode_file(file.path(params$output_dir, sprintf("spillover/%s.png", sample_names[i])), base64enc::base64encode),
-      pdata = jsonlite::toJSON(pd[i, ], pretty = TRUE)
+      spillover = rmarkdown:::base64_encode_file(file.path(params$output_dir, sprintf("spillover/%s.png", sample_names[i])), base64enc::base64encode)
     )
   })
 ```
@@ -197,7 +236,7 @@ plotInfo <- lapply(
 <div id="plots">
 <div class="dropdown">
 <button class="dropdown-toggle" type="button" data-toggle="dropdown">
-Select Plot Type
+Select Sample
 <span class="caret"></span>
 </button>
 <ul class="dropdown-menu">
@@ -215,7 +254,8 @@ tagList(
       tags$li(
         class = class,
         tags$a(
-          href = paste0("#", thisPlotInfo$i),
+          id = thisPlotInfo$name,
+          href = "#by-sample",
           class = "dropdown-tab",
           thisPlotInfo$name
         )
@@ -227,7 +267,7 @@ tagList(
       
 </ul>
 </div>
-<div class="tab-content">
+<div class="tab-content", id="samples">
     
 ```{r tabs}
 tagList(
@@ -240,15 +280,25 @@ tagList(
         class <- "tab-pane"
       }
       div(
-        id = thisPlotInfo$i,
+        id = thisPlotInfo$name,
         class = class,
-        h2(thisPlotInfo$name),
-        h3("Gates"),
-        img(src = thisPlotInfo$gates),
-        h3("spillover matrix"),
-        img(src = thisPlotInfo$spillover),
-        h3("pData"),
-        code(thisPlotInfo$pdata)
+        h3(thisPlotInfo$name),
+        div(
+          class = "sample-row",
+          style = "display: flex;",
+          div(
+            class = "sample-column",
+            style = "flex: 50%; padding: 5px;",
+            h5("Gates"),
+            img(src = thisPlotInfo$gates, style = "height: 100%; width: 100%; object-fit: contain")
+          ),
+          div(
+            class = "sample-column",
+            style = "flex: 50%; padding: 5px;",
+            h5("spillover matrix"),
+            img(src = thisPlotInfo$spillover, style = "height: 100%; width: 100%; object-fit: contain")
+          )
+        )
       )
     }
   )
@@ -269,16 +319,51 @@ tagList(
 $('.dropdown-tab').click(function (e) {
     $('.dropdown-menu li.active').removeClass('active');
     $(this).parent('li').addClass('active');
-    $('.tab-content div.active').removeClass('active');
-    $($(this).attr('href')).addClass('active');
+    $('#samples div.active').removeClass('active');
+    $('#' + CSS.escape($(this).attr('id'))).addClass('active');
+    id = $(this).attr('id');
+    
+    window.open('#pdata', '_self');
+    var checkExist = setInterval(function() {
+      if ($('input[type=search]').length > 0) {
+        $('input[type=search]').val(id).keyup();
+        clearInterval(checkExist);
+      }
+    }, 100);
+    window.open('#by-sample', '_self');
 })
 </script>
 
 
----
+
+Marker expression
+=====================================
+
+Column {.tabset}
+-------------------------------------
+
+### After lymphocyte gate
+
+```{r markers}
+img(
+  src = rmarkdown:::base64_encode_file(file.path(params$output_dir, "markers.png"), base64enc::base64encode),
+  style = "height: 100%; width: 100%; object-fit: contain"
+)
+```
 
 
-## Session info
+
+pData
+===================================== 
+
+```{r pData}
+DT::datatable(pd)
+```
+
+
+
+Session info
+===================================== 
 
 ```{r session-info}
 sessionInfo()

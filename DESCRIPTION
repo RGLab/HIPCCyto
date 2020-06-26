@@ -12,7 +12,7 @@ Encoding: UTF-8
 LazyData: true
 Depends: 
     flowCore,
-    R (>= 2.10)
+    R (>= 4.0.0)
 Imports: 
     ImmPortR,
     ncdfFlow,
@@ -33,7 +33,8 @@ Imports:
     knitr,
     htmltools,
     htmlwidgets,
-    plotly
+    plotly,
+    flexdashboard
 Suggests:
     Rlabkey,
     usethis

@@ -418,7 +418,7 @@ render_qc_report <- function(input_dir, output_dir = "") {
   catf(">> Compiling QC report...")
 
   output_dir <- ifelse(output_dir == "", input_dir, output_dir)
-  output_file <- "QC_report.html"
+  output_file <- "QC.html"
   file_path <- file.path(output_dir, output_file)
 
   catf(sprintf(">> output_file: ", file_path))
