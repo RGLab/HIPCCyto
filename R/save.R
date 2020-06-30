@@ -5,7 +5,7 @@
 #' @importFrom flowCore getChannelMarker
 #' @export
 save_gating_sets <- function(gsl, output_dir, qc = TRUE) {
-  lapply(seq_len(length(gsl)), function(i) {
+  gsl_path <- lapply(seq_len(length(gsl)), function(i) {
     catf(sprintf(">> Saving gating set #%s...", i))
     gs <- gsl[[i]]
 
@@ -25,6 +25,12 @@ save_gating_sets <- function(gsl, output_dir, qc = TRUE) {
     }
     path
   })
+
+  if (isTRUE(qc)) {
+    try(render_study_report(output_dir))
+  }
+
+  gsl_path
 }
 
 create_qc_files <- function(gs, output_dir, full = FALSE) {
@@ -414,20 +420,33 @@ save_density_plots_by_marker <- function(gs, marker, output_dir) {
 
 #' @importFrom rmarkdown render
 #' @export
-render_qc_report <- function(input_dir, output_dir = "") {
+render_qc_report <- function(input_dir) {
   catf(">> Compiling QC report...")
-
-  output_dir <- ifelse(output_dir == "", input_dir, output_dir)
-  output_file <- "QC.html"
-  file_path <- file.path(output_dir, output_file)
+  file_path <- file.path(input_dir, "QC.html")
 
   catf(sprintf(">> output_file: ", file_path))
-  input <- file.path(output_dir, "gs.Rmd")
-  file.copy(system.file("qc/gs.Rmd", package = "HIPCCyto"), input, overwrite = TRUE)
+  input <- file.path(input_dir, "QC.Rmd")
+  file.copy(system.file("qc/QC.Rmd", package = "HIPCCyto"), input, overwrite = TRUE)
   render(
     input = input,
-    params = list(input_dir = input_dir, output_dir = output_dir)
+    params = list(input_dir = input_dir)
   )
+
+  file_path
+}
+
+render_study_report <- function(input_dir, study, version) {
+  catf(">> Compiling study report...")
+
+  input <- file.path(input_dir, "study.Rmd")
+  file.copy(system.file("qc/study.Rmd", package = "HIPCCyto"), input, overwrite = TRUE)
+  render(
+    input = input,
+    params = list(input_dir = input_dir, study = study, version = version)
+  )
+
+  file_path <- file.path(input_dir, "study.html")
+  catf(sprintf(">> output_file: ", file_path))
 
   file_path
 }

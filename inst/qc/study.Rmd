@@ -1,0 +1,93 @@
+---
+title: "Study Summary"
+output: flexdashboard::flex_dashboard
+params:
+  input_dir: ""
+  study: ""
+  version: ""
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+```
+
+```{r prep}
+dirs <- dir(params$input_dir, pattern = "gs\\d+", full.names = TRUE)
+summaries <- lapply(dirs, function(x) tryCatch(jsonlite::fromJSON(file.path(x, "summary")), error = function(e) NULL))
+names(summaries) <- basename(dirs)
+get_col <- function(var) {
+  sapply(summaries, function(x) ifelse(is.null(x), NA, paste0(gtools::mixedsort(x[[var]]), collapse = "<br>")))
+}
+
+df <- data.frame(
+  QC_report = sapply(names(summaries), function(x) paste0("<a href='", x, "/QC.html'>report</a>")),
+  number_of_samples = sapply(summaries, function(x) ifelse(is.null(x), NA, x$number_of_samples)),
+  markers = get_col("markers"),
+  nodes = get_col("nodes"),
+  sample_types = get_col("sample_types"),
+  timepoints = get_col("timepoints"),
+  cohorts = get_col("cohorts"),
+  batches = sapply(summaries, function(x) ifelse(is.null(x), NA, paste0(gtools::mixedsort(names(x[["batches"]])), collapse = "<br>")))
+)
+
+study <- if (params$study == "") unique(unlist(sapply(summaries, function(x) x$study))) else params$study
+version <- if (params$version == "") unique(unlist(sapply(summaries, function(x) x$version))) else params$version
+```
+
+
+
+Gating sets
+=====================================  
+
+### `r study` `r version`
+
+```{r gating-sets}
+DT::datatable(df, escape = FALSE)
+```
+
+
+
+Panels
+=====================================  
+
+```{r panels}
+markers <- lapply(summaries, function(x) if(is.null(x)) NA else x[["markers"]])
+m <- gtools::mixedsort(unique(unlist(markers)))
+panels <- matrix(0L, nrow = length(markers), ncol = length(m), dimnames = list(names(markers), m))
+for (gs in names(markers)) {
+  ms <- markers[[gs]]
+  if (length(ms) > 0) {
+    panels[gs, ms] <- 1L
+  }
+}
+
+pfile <- tempfile(fileext = ".png")
+pheatmap::pheatmap(t(panels), cluster_rows = FALSE, cluster_cols = FALSE, color = c("white", "darkblue"), legend = FALSE, filename = pfile, breaks = c(0, 0.5, 1))
+htmltools::img(
+  src = rmarkdown:::base64_encode_file(pfile, base64enc::base64encode),
+  style = "height: 100%; width: 100%; object-fit: contain"
+)
+```
+
+
+
+Study info
+====================================
+
+```{r study-info}
+ImmPortR:::query(sprintf("study/summary/%s", study))
+```
+
+
+
+Session info
+====================================
+
+```{r session-info}
+sessionInfo()
+```
+
+
+<style type="text/css"> div.chart-shim { overflow: auto } </style>
