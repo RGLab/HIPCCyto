@@ -23,11 +23,12 @@ save_gating_sets <- function(gsl, output_dir, qc = TRUE) {
       try(create_qc_files(gs, path))
       try(render_qc_report(path))
     }
+
     path
   })
 
   if (isTRUE(qc)) {
-    try(render_study_report(output_dir))
+    try(render_study_report(output_dir, study))
   }
 
   gsl_path
@@ -76,7 +77,8 @@ summarize_gating_set <- function(gs) {
     timepoints = unique(paste(pd$study_time_collected, pd$study_time_collected_unit)),
     cohorts = unique(pd$cohort),
     batches = as.list(table(pd$batch)),
-    participants = unique(pd$participant_id)
+    participants = unique(pd$participant_id),
+    version = get_version()
   )
 }
 
@@ -420,32 +422,32 @@ save_density_plots_by_marker <- function(gs, marker, output_dir) {
 
 #' @importFrom rmarkdown render
 #' @export
-render_qc_report <- function(input_dir) {
+render_qc_report <- function(gs_dir) {
   catf(">> Compiling QC report...")
-  file_path <- file.path(input_dir, "QC.html")
+  file_path <- file.path(gs_dir, "QC.html")
 
   catf(sprintf(">> output_file: ", file_path))
-  input <- file.path(input_dir, "QC.Rmd")
+  input <- file.path(gs_dir, "QC.Rmd")
   file.copy(system.file("qc/QC.Rmd", package = "HIPCCyto"), input, overwrite = TRUE)
   render(
     input = input,
-    params = list(input_dir = input_dir)
+    params = list(gs_dir = gs_dir)
   )
 
   file_path
 }
 
-render_study_report <- function(input_dir, study, version) {
+render_study_report <- function(study_dir, study, version = get_version()) {
   catf(">> Compiling study report...")
 
-  input <- file.path(input_dir, "study.Rmd")
+  input <- file.path(study_dir, "study.Rmd")
   file.copy(system.file("qc/study.Rmd", package = "HIPCCyto"), input, overwrite = TRUE)
   render(
     input = input,
-    params = list(input_dir = input_dir, study = study, version = version)
+    params = list(study_dir = study_dir, study = study, version = version)
   )
 
-  file_path <- file.path(input_dir, "study.html")
+  file_path <- file.path(study_dir, "study.html")
   catf(sprintf(">> output_file: ", file_path))
 
   file_path
@@ -466,4 +468,8 @@ get_marker_channel <- function(gs) {
 
 get_nodes <- function(gs) {
   gs_get_pop_paths(gs, path = 1)[-1]
+}
+
+get_version <- function() {
+  paste0("v", packageVersion("HIPCCyto"))
 }

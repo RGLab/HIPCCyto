@@ -1,8 +1,8 @@
 ---
-title: "Gating Set QC"
-output: flexdashboard::flex_dashboard
+output: 
+  flexdashboard::flex_dashboard
 params:
-  input_dir: ""
+  gs_dir: ""
 editor_options: 
   chunk_output_type: console
 ---
@@ -22,63 +22,77 @@ library(htmlwidgets)
 ```
 
 ```{r load}
-gs <- load_gs(file.path(params$input_dir, "gs"))
+gs <- load_gs(file.path(params$gs_dir, "gs"))
 pd <- pData(gs)
 s <- summarize_gating_set(gs)
 ```
 
+---
+title: `r s$study`
+---
+
 Summary
 ===================================== 
 
-Column 
+Column
 -------------------------------------
 
 ### Summary
 
 ```{r summary}
-h4(s$study)
-params$input_dir
-
 knitr::kable(
   data.frame(
-    "n_samples" = length(gs), 
+    "n_samples" = length(gs),
     "n_markers" = length(markernames(gs)),
-    "n_gates" = length(gs_get_pop_paths(gs, path = 1)),
     "n_participants" = length(unique(pd$participant_id))
   ),
   align = "c"
 )
 ```
 
+### Gating Hierarchy
+
+```{r nodes}
+flowWorkspace::plot(gs)
+```
+
 ### Panel
 
 ```{r panel}
-knitr::kable(markernames(gs), col.names = "Marker")
+m <- markernames(gs)
+knitr::kable(data.frame(Channel = names(m), Marker =  m, row.names = NULL))
 ```
-
 
 Column {.tabset}
 -------------------------------------
 
-### Sample types
+### Study info
+
+```{r study-info}
+ImmPortR:::query(sprintf("study/summary/%s", s$study))
+```
+
+### Tables
+
+#### Sample types
 
 ```{r sample-types}
 table(pd$type)
 ```
 
-### Timepoints
+#### Timepoints
 
 ```{r timepoints}
 table(paste(pd$study_time_collected, pd$study_time_collected_unit))
 ```
 
-### Cohorts
+#### Cohorts
 
 ```{r cohorts}
 table(pd$cohort)
 ```
 
-### Batches
+#### Batches
 
 ```{r batches}
 table(pd$batch)
@@ -98,9 +112,9 @@ Gating
 Column {.tabset}
 -------------------------------------
 
-### Nodes
+### Gating Hierarchy
 
-```{r gating}
+```{r gating-hierarchy}
 flowWorkspace::plot(gs)
 gates <- HIPCCyto:::get_nodes(gs)
 ```
@@ -215,7 +229,7 @@ ggplotly(p) %>%
 
 
 
-By Sample
+By sample
 ===================================== 
 
 ```{r samples}
@@ -226,8 +240,8 @@ plotInfo <- lapply(
     list(
       name = sample_names[i],
       i = i,
-      gates = rmarkdown:::base64_encode_file(file.path(params$input_dir, sprintf("gates/%s.png", sample_names[i])), base64enc::base64encode),
-      spillover = rmarkdown:::base64_encode_file(file.path(params$input_dir, sprintf("spillover/%s.png", sample_names[i])), base64enc::base64encode)
+      gates = rmarkdown:::base64_encode_file(file.path(params$gs_dir, sprintf("gates/%s.png", sample_names[i])), base64enc::base64encode),
+      spillover = rmarkdown:::base64_encode_file(file.path(params$gs_dir, sprintf("spillover/%s.png", sample_names[i])), base64enc::base64encode)
     )
   })
 ```
@@ -345,15 +359,15 @@ Column {.tabset}
 
 ```{r markers}
 img(
-  src = rmarkdown:::base64_encode_file(file.path(params$input_dir, "markers.png"), base64enc::base64encode),
+  src = rmarkdown:::base64_encode_file(file.path(params$gs_dir, "markers.png"), base64enc::base64encode),
   style = "height: 100%; width: 100%; object-fit: contain"
 )
 ```
 
 
 
-pData
-===================================== 
+Sample metadata
+=====================================
 
 ```{r pData}
 DT::datatable(pd)
@@ -367,3 +381,29 @@ Session info
 ```{r session-info}
 sessionInfo()
 ```
+
+
+
+Help
+===================================== 
+
+Column {.tabset}
+-------------------------------------
+
+### Summary
+
+### Gating
+
+### By sample
+
+### Marker expression
+
+### Sample metadata
+
+### Session info
+
+### Help
+
+
+
+<style type="text/css"> div.chart-shim { overflow: auto } </style>
