@@ -375,7 +375,7 @@ compute_flowClusters <- function(gs, debug_dir = NULL) {
     catf(">> Submitting flowClust jobs to slurm...")
     ex <- lapply(sampleNames(nc), function(x) nc[[x]]@exprs[, c("FSC-A", "SSC-A")])
     names(ex) <- sampleNames(nc)
-    flowClusters <- Slurm_lapply(ex, flowclust, njobs = length(ex), mc.cores = 1L)
+    flowClusters <- Slurm_lapply(ex, flowclust, njobs = length(ex), mc.cores = 1L, sbatch_opt = list("constraint" = "gizmok"))
   } else {
     flowClusters <- mclapply(sampleNames(nc), function(x) {
       ex <- nc[[x]]@exprs[, c("FSC-A", "SSC-A")]
