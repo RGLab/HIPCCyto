@@ -164,6 +164,8 @@ qc_polygon_gates <- function(gs, gate) {
   # retrieve gates
   gates <- gs_pop_get_gate(gs, gate)
   batch <- pData(gs)$batch
+  outlier <- pData(gs)$outlier
+  if (is.null(outlier)) outlier <- rep(TRUE, length(gates))
 
   # build data
   tmp <- lapply(seq_along(gates), function(i) {
@@ -180,9 +182,11 @@ qc_polygon_gates <- function(gs, gate) {
       check.names = FALSE,
       stringsAsFactors = FALSE
     )
+    df$outlier <- outlier[i]
     if (!is.null(batch)) {
       df$batch <- batch[i]
     }
+
     df
   })
   dt <- do.call(rbind, tmp)
@@ -192,7 +196,7 @@ qc_polygon_gates <- function(gs, gate) {
 
   title <- sprintf("%s gates by sample", gate)
   p <- ggplot(dt, aes_(x = as.name(channels[1]), y = as.name(channels[2]))) +
-    geom_polygon(aes(group = sample, text = i), fill = NA, color = "red", alpha = 0.25) +
+    geom_polygon(aes(group = sample, text = i, col = outlier), fill = NA, alpha = 0.25) +
     xlim(0, xmax) +
     ylim(0, ymax) +
     labs(title = title)
@@ -316,6 +320,7 @@ plot_density <- function(gh, channel) {
 
 # Save -------------------------------------------------------------------------
 
+#' @importFrom gtools mixedorder
 #' @importFrom pheatmap pheatmap
 save_spillover_heatmaps <- function(gs, output_dir) {
   catf(">> Saving spillover matrix heatmaps...")
@@ -328,7 +333,7 @@ save_spillover_heatmaps <- function(gs, output_dir) {
     filename <- file.path(output_dir, paste0(x, ".png"))
     mat <- get_spillover(gh_pop_get_data(gs[[x]]))
     rownames(mat) <- colnames(mat)
-    ord <- gtools::mixedorder(colnames(mat))
+    ord <- mixedorder(colnames(mat))
     mat <- mat[ord, ord]
     p <- pheatmap(
       mat = mat,
@@ -453,6 +458,67 @@ render_study_report <- function(study_dir, study, version = get_version()) {
   file_path
 }
 
+
+# Outliers ---------------------------------------------------------------------
+
+find_outliers <- function(gs, byBatch = TRUE, cl = 0.99, step = 3) {
+  batch <- unique(pData(gs)$batch)
+
+  if (isFALSE(byBatch) | length(batch) <= 1) {
+    test_outliers(gs, cl, step)
+  } else {
+    unlist(lapply(batch, function(x) {
+      catf(x)
+      test_outliers(subset(gs, batch == x), cl, step)
+    }))
+  }
+}
+
+#' @importFrom diptest dip.test
+#' @importFrom SIBER pointsToEllipsoid ellipseInOut
+test_outliers <- function(gs, cl = 0.99, step = 3) {
+  if (length(cl) == 1) {
+    cl <- rep(cl, 3)
+  }
+
+  # step 1: dip test
+  nc <- gs_pop_get_data(gs, "Lymphocytes")
+  pv <- fsApply(nc, function(x) dip.test(x@exprs[, "FSC-A"])$p.value)
+  outliers <- names(which(pv[, 1] < (1 - cl[1])))
+  catf(">> step #1: dip test")
+  catf(outliers)
+  if (step == 1) return(outliers)
+
+  # step 2: locationa test
+  gates <- gs_pop_get_gate(gs[!sampleNames(gs) %in% outliers], "Lymphocytes")
+  mat <- t(sapply(gates, function(x) c(
+    ux = unname(x@mean[1]),
+    uy = unname(x@mean[2]),
+    sx = x@cov[1, 1],
+    sy = x@cov[2, 2],
+    sxy = x@cov[1, 2],
+    det = abs(det(x@cov))
+  )))
+
+  mu <- colMeans(mat[, 1:2])
+  sigma <- cov(mat[, 1:2])
+  Z <- pointsToEllipsoid(mat[, 1:2], sigma, mu)
+  inside <- ellipseInOut(Z, p = cl[2])
+  catf(">> step #2: location test")
+  catf(names(which(!inside)))
+  outliers <- c(outliers, names(which(!inside)))
+  if (step == 2) return(outliers)
+
+  # step 3: size test
+  size <- mat[inside, "det"]
+  res <- t.test(size, conf.level = cl[3])
+  inside <- size > res$conf.int[1] & size < res$conf.int[2]
+  catf(">> step #3: size test")
+  catf(names(which(!inside)))
+  outliers <- c(outliers, names(which(!inside)))
+
+  outliers
+}
 
 # Helpers ----------------------------------------------------------------------
 

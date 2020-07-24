@@ -34,8 +34,10 @@ Imports:
     htmltools,
     htmlwidgets,
     plotly,
-    flexdashboard
+    flexdashboard,
+    diptest,
+    SIBER
 Suggests:
     Rlabkey,
     usethis
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1

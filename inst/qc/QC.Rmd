@@ -16,14 +16,16 @@ library(HIPCCyto)
 library(flowWorkspace)
 library(ggcyto)
 library(plotly)
-library(trelliscopejs)
 library(htmltools)
 library(htmlwidgets)
 ```
 
-```{r load}
+```{r load, include=FALSE}
 gs <- load_gs(file.path(params$gs_dir, "gs"))
 pd <- pData(gs)
+outliers <- HIPCCyto:::find_outliers(gs)
+pd$outlier <- pd$name %in% outliers
+pData(gs) <- pd
 s <- summarize_gating_set(gs)
 ```
 
