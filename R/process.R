@@ -373,12 +373,12 @@ compute_flowClusters <- function(gs, debug_dir = NULL) {
 
   if (slurm_available()) {
     catf(">> Submitting flowClust jobs to slurm...")
-    ex <- lapply(sampleNames(nc), function(x) nc[[x]]@exprs[, c("FSC-A", "SSC-A")])
+    ex <- lapply(sampleNames(nc), function(x) exprs(nc[[x]])[, c("FSC-A", "SSC-A")])
     names(ex) <- sampleNames(nc)
     flowClusters <- Slurm_lapply(ex, flowclust, njobs = length(ex), mc.cores = 1L, sbatch_opt = list("constraint" = "gizmok"))
   } else {
     flowClusters <- mclapply(sampleNames(nc), function(x) {
-      ex <- nc[[x]]@exprs[, c("FSC-A", "SSC-A")]
+      ex <- exprs(nc[[x]])[, c("FSC-A", "SSC-A")]
       flowclust(ex)
     }, mc.cores = detect_cores())
     names(flowClusters) <- sampleNames(nc)
@@ -490,8 +490,8 @@ create_fcEllipsoidGate <- function(flowClusters, targets) {
     "3" = c(min, min),
     "4" = c(max, min)
   )
-  ch1_lim <- lim_func[[1]](fr@exprs[, channels[1]], na.rm = TRUE) * (1 - toRemove)
-  ch2_lim <- lim_func[[2]](fr@exprs[, channels[1]], na.rm = TRUE) * (1 - toRemove)
+  ch1_lim <- lim_func[[1]](exprs(fr)[, channels[1]], na.rm = TRUE) * (1 - toRemove)
+  ch2_lim <- lim_func[[2]](exprs(fr)[, channels[1]], na.rm = TRUE) * (1 - toRemove)
 
   range <- switch(
     quadrant,

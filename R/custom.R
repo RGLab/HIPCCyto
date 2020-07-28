@@ -63,7 +63,7 @@ compute_flowClusters_custom <- function(gs, debug_dir = NULL, nclust = 1) {
   nc <- gs_pop_get_data(gs, get_parent(gs))
   flowClusters <- mclapply(sampleNames(nc), function(x) {
     fc <- flowClust(
-      x = nc[[x]]@exprs[, c("FSC-A", "SSC-A")],
+      x = exprs(nc[[x]])[, c("FSC-A", "SSC-A")],
       K = nclust,
       trans = 0,
       min.count = -1,

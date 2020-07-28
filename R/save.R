@@ -135,7 +135,7 @@ qc_1d_gates <- function(gs, gate) {
     check.names = FALSE,
     stringsAsFactors = FALSE
   )
-  xmax <- max(gh_pop_get_data(gs[[1]])@exprs[, channel])
+  xmax <- max(exprs(gh_pop_get_data(gs[[1]]))[, channel])
 
   # plot
   title <- sprintf("%s gates by sample", gate)
@@ -191,8 +191,8 @@ qc_polygon_gates <- function(gs, gate) {
   })
   dt <- do.call(rbind, tmp)
   channels <- colnames(dt)[3:4]
-  xmax <- max(gh_pop_get_data(gs[[1]])@exprs[, channels[1]])
-  ymax <- max(gh_pop_get_data(gs[[1]])@exprs[, channels[2]])
+  xmax <- max(exprs(gh_pop_get_data(gs[[1]]))[, channels[1]])
+  ymax <- max(exprs(gh_pop_get_data(gs[[1]]))[, channels[2]])
 
   title <- sprintf("%s gates by sample", gate)
   p <- ggplot(dt, aes_(x = as.name(channels[1]), y = as.name(channels[2]))) +
@@ -226,7 +226,7 @@ plot_marker <- function(gs, marker) {
   }
 
   densities <- lapply(sampleNames(nc), function(x) {
-    tmp <- density(nc[[x]]@exprs[, channel])
+    tmp <- density(exprs(nc[[x]])[, channel])
     df <- data.frame(
       sample = x,
       x = tmp$x,
@@ -262,7 +262,7 @@ plot_markers <- function(gs) {
 
   densities <- lapply(sampleNames(gs), function(x) {
     l <- lapply(names(markernames(gs)), function(channel) {
-      dat <- nc[[x]]@exprs[, channel]
+      dat <- exprs(nc[[x]])[, channel]
       dens <- density(dat)
       dens$y <- length(dat) / sum(dens$y) * dens$y
       df <- data.frame(
@@ -304,7 +304,7 @@ plot_density <- function(gh, channel) {
   gates <- gh_get_pop_paths(gh, path = 1)
 
   s <- lapply(gates, function(gate) {
-    expr <- gh_pop_get_data(gh, gate)@exprs[, channel]
+    expr <- exprs(gh_pop_get_data(gh, gate))[, channel]
     tmp <- data.frame(gate = gate, expr = expr)
     colnames(tmp)[2] <- channel
     tmp
@@ -483,7 +483,7 @@ test_outliers <- function(gs, cl = 0.99, step = 3) {
 
   # step 1: dip test
   nc <- gs_pop_get_data(gs, "Lymphocytes")
-  pv <- fsApply(nc, function(x) dip.test(x@exprs[, "FSC-A"])$p.value)
+  pv <- fsApply(nc, function(x) dip.test(exprs(x)[, "FSC-A"])$p.value)
   outliers <- names(which(pv[, 1] < (1 - cl[1])))
   catf(">> step #1: dip test")
   catf(outliers)
