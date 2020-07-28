@@ -46,7 +46,8 @@ DATA <- list(
     target = c(40000, 5000)
   ),
   "SDY387" = list(
-    target = c(60000, 6000)
+    target = c(60000, 6000),
+    batch = "EXPERIMENT NAME"
   ),
   "SDY368" = list(
     target = c(60000, 6000)
