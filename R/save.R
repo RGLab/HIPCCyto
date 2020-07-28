@@ -489,7 +489,7 @@ test_outliers <- function(gs, cl = 0.99, step = 3) {
   catf(outliers)
   if (step == 1) return(outliers)
 
-  if(sum(!sampleNames(gs) %in% outliers) > 2){
+  if(sum(!sampleNames(gs) %in% outliers) > 5){
     # step 2: location test
     gates <- gs_pop_get_gate(gs[!sampleNames(gs) %in% outliers], "Lymphocytes")
     mat <- t(sapply(gates, function(x) c(
