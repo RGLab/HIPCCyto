@@ -489,33 +489,37 @@ test_outliers <- function(gs, cl = 0.99, step = 3) {
   catf(outliers)
   if (step == 1) return(outliers)
 
-  # step 2: locationa test
-  gates <- gs_pop_get_gate(gs[!sampleNames(gs) %in% outliers], "Lymphocytes")
-  mat <- t(sapply(gates, function(x) c(
-    ux = unname(x@mean[1]),
-    uy = unname(x@mean[2]),
-    sx = x@cov[1, 1],
-    sy = x@cov[2, 2],
-    sxy = x@cov[1, 2],
-    det = abs(det(x@cov))
-  )))
+  if(sum(!sampleNames(gs) %in% outliers) > 2){
+    # step 2: location test
+    gates <- gs_pop_get_gate(gs[!sampleNames(gs) %in% outliers], "Lymphocytes")
+    mat <- t(sapply(gates, function(x) c(
+      ux = unname(x@mean[1]),
+      uy = unname(x@mean[2]),
+      sx = x@cov[1, 1],
+      sy = x@cov[2, 2],
+      sxy = x@cov[1, 2],
+      det = abs(det(x@cov))
+    )))
 
-  mu <- colMeans(mat[, 1:2])
-  sigma <- cov(mat[, 1:2])
-  Z <- pointsToEllipsoid(mat[, 1:2], sigma, mu)
-  inside <- ellipseInOut(Z, p = cl[2])
-  catf(">> step #2: location test")
-  catf(names(which(!inside)))
-  outliers <- c(outliers, names(which(!inside)))
-  if (step == 2) return(outliers)
+    mu <- colMeans(mat[, 1:2])
+    sigma <- cov(mat[, 1:2])
+    Z <- pointsToEllipsoid(mat[, 1:2], sigma, mu)
+    inside <- ellipseInOut(Z, p = cl[2])
+    catf(">> step #2: location test")
+    catf(names(which(!inside)))
+    outliers <- c(outliers, names(which(!inside)))
+    if (step == 2) return(outliers)
 
-  # step 3: size test
-  size <- mat[inside, "det"]
-  res <- t.test(size, conf.level = cl[3])
-  inside <- size > res$conf.int[1] & size < res$conf.int[2]
-  catf(">> step #3: size test")
-  catf(names(which(!inside)))
-  outliers <- c(outliers, names(which(!inside)))
+    # step 3: size test
+    size <- mat[inside, "det"]
+    res <- t.test(size, conf.level = cl[3])
+    inside <- size > res$conf.int[1] & size < res$conf.int[2]
+    catf(">> step #3: size test")
+    catf(names(which(!inside)))
+    outliers <- c(outliers, names(which(!inside)))
+  }else{
+    catf(">> insufficient samples for steps #2 and #3")
+  }
 
   outliers
 }
