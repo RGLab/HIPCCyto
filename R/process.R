@@ -646,3 +646,89 @@ get_markers <- function(study, modify = TRUE) {
   }
   markers
 }
+
+#' @importFrom flowWorkspace lapply
+impute_gate <- function(gs, gate = "Lymphocytes", to_impute = NULL, batch = NULL, method = "consensus"){
+  if(is.null(to_impute) || length(to_impute) <= 0)
+    message("No samples passed to to_impute arg of impute_gate.")
+  else if(is.numeric(to_impute)){
+    to_impute_idx <- to_impute
+    to_impute_sn <- sampleNames(gs[to_impute])
+  }else{
+    to_impute_sn <- intersect(to_impute, sampleNames(gs))
+    if(length(to_impute_sn) != length(to_impute))
+      warning("Some sample names passed to to_impute arg of inpute_gate do not match GatingSet")
+    to_impute_idx <- match(to_impute_sn, sampleNames(gs))
+  }
+
+  # For flexibility of imputation level
+  if(isTRUE(batch))
+    batch <- "batch"
+  else if(isFALSE(batch))
+    batch <- NULL
+
+  if(is.null(batch))
+    batch_groups <- list(pData(gs))
+  else
+    batch_groups <- split(pData(gs), pData(gs)$batch)
+
+  for(idx in seq_along(batch_groups)){
+    batch_pd <- batch_groups[[idx]]
+    to_impute_sn_batch <- to_impute_sn[to_impute_sn %in% rownames(batch_pd)]
+    to_impute_idx_batch <- match(to_impute_sn_batch, sampleNames(gs))
+    # Get the template gates
+    good_gates <- lapply(gs[-to_impute_idx_batch], function(gh){
+      gh_pop_get_gate(gh, "Lymphocytes")
+    })
+    if(length(good_gates) <= 0){
+      warning("No template gates remaining in batch to use for imputation.")
+      break
+    }
+    if( is(good_gates[[1]], "ellipsoidGate")){
+      if(method != "consensus"){
+        warning("Only consensus imputation is currently implemented for ellipsoidGates")
+        break
+      }else{
+        # Building consensus ellipse
+
+        # Getting consensus center:
+        good_centers <- do.call(rbind, lapply(good_gates, function(gate){
+          gate@mean
+        }))
+        consensus_location <- colMeans(good_centers)
+
+        # Getting consensus Mahalanobis distance:
+        consensus_distance <- mean(sapply(good_gates, function(gate) gate@distance))
+
+        # Getting consensus shape (covariance matrix):
+        good_eigs <- lapply(good_gates, function(gate){
+          eigen(gate@cov)
+        })
+        good_eigVals <- do.call(rbind, lapply(good_eigs, function(this_eigs){
+          this_eigs$values
+        }))
+        consensus_eigVals <- colMeans(good_eigVals)
+        consensus_eigVec1 <- colMeans(do.call(rbind, lapply(good_eigs, function(this_eigs){
+          this_eigs$vectors[,1]
+        })))
+        consensus_eigVec2 <- colMeans(do.call(rbind, lapply(good_eigs, function(this_eigs){
+          this_eigs$vectors[,2]
+        })))
+        consensus_eigVecs <- cbind(consensus_eigVec1, consensus_eigVec2)
+        consensus_cov <- consensus_eigVecs %*% diag(consensus_distance*consensus_eigVals) %*% solve(consensus_eigVecs)
+        rownames(consensus_cov) <- colnames(consensus_cov) <- names(consensus_location)
+
+        # Wrapping it together in consensus ellipsoidGate object:
+        consensus_eg <- ellipsoidGate(gate=consensus_cov, mean=consensus_location, filterId="consensus_ellipsoidGate")
+        imputed_gates <- lapply(seq_along(to_impute_sn_batch), function(dummy) consensus_eg)
+        names(imputed_gates) <- to_impute_sn_batch
+
+        gs_pop_set_gate(gs[to_impute_sn_batch], "Lymphocytes", imputed_gates)
+      }
+    }else{
+      warning("Unsupported gate type for imputation.")
+    }
+  }
+
+  recompute(gs)
+}
