@@ -140,15 +140,6 @@ if ("Live" %in% gates) {
           $('.dropdown-tab').parent('li').eq(i-1).addClass('active');
           $('#samples div.active').removeClass('active');
           $('#' + CSS.escape(id)).addClass('active');
-          
-          window.open('#pdata', '_self');
-          var checkExist = setInterval(function() {
-            if ($('input[type=search]').length > 0) {
-              $('input[type=search]').val(id).keyup();
-              clearInterval(checkExist);
-            }
-          }, 100);
-          window.open('#by-sample', '_self');
         });
       } 
     ")
@@ -176,15 +167,6 @@ if ("Nondebris" %in% gates) {
           $('.dropdown-tab').parent('li').eq(i-1).addClass('active');
           $('#samples div.active').removeClass('active');
           $('#' + CSS.escape(id)).addClass('active');
-          
-          window.open('#pdata', '_self');
-          var checkExist = setInterval(function() {
-            if ($('input[type=search]').length > 0) {
-              $('input[type=search]').val(id).keyup();
-              clearInterval(checkExist);
-            }
-          }, 100);
-          window.open('#by-sample', '_self');
         });
       } 
     ")
@@ -212,15 +194,6 @@ ggplotly(p) %>%
         $('.dropdown-tab').parent('li').eq(i-1).addClass('active');
         $('#samples div.active').removeClass('active');
         $('#' + CSS.escape(id)).addClass('active');
-        
-        window.open('#pdata', '_self');
-        var checkExist = setInterval(function() {
-          if ($('input[type=search]').length > 0) {
-            $('input[type=search]').val(id).keyup();
-            clearInterval(checkExist);
-          }
-        }, 100);
-        window.open('#by-sample', '_self');
       });
     } 
   ")
@@ -231,8 +204,11 @@ ggplotly(p) %>%
 
 
 
-By sample
+By sample  {data-orientation=rows}
 ===================================== 
+
+Row {data-height=15}
+-------------------------------------
 
 ```{r samples}
 sample_names <- sampleNames(gs)
@@ -248,7 +224,6 @@ plotInfo <- lapply(
   })
 ```
 
-<div id="plots">
 <div class="dropdown">
 <button class="dropdown-toggle" type="button" data-toggle="dropdown">
 Select Sample
@@ -281,7 +256,19 @@ tagList(
 ```
       
 </ul>
+
+<button id="prev" type="button" onclick="sample_button('previous')">Previous sample</button>
+<button id="next" type="button" onclick="sample_button('next')">Next sample</button>
+
 </div>
+
+
+Row
+-------------------------------------
+
+### 
+
+<div id="plots">
 <div class="tab-content", id="samples">
     
 ```{r tabs}
@@ -297,21 +284,20 @@ tagList(
       div(
         id = thisPlotInfo$name,
         class = class,
-        h3(thisPlotInfo$name),
         div(
           class = "sample-row",
           style = "display: flex;",
           div(
             class = "sample-column",
             style = "flex: 50%; padding: 5px;",
-            h5("Gates"),
-            img(src = thisPlotInfo$gates, style = "height: 100%; width: 100%; object-fit: contain")
+            img(src = thisPlotInfo$gates, style = "height: 700px; width: 100%; object-fit: contain")
           ),
           div(
             class = "sample-column",
             style = "flex: 50%; padding: 5px;",
-            h5("spillover matrix"),
-            img(src = thisPlotInfo$spillover, style = "height: 100%; width: 100%; object-fit: contain")
+            img(src = thisPlotInfo$spillover, style = "height: 600px; width: 100%; object-fit: contain"),
+            shiny::actionButton(paste0(thisPlotInfo$name, "-correct"), "Correct lymph gate", onclick = "unflag()"),
+            shiny::actionButton(paste0(thisPlotInfo$name, "-incorrect"), "Incorrect lymph gate", onclick = "flag()")
           )
         )
       )
@@ -337,16 +323,61 @@ $('.dropdown-tab').click(function (e) {
     $('#samples div.active').removeClass('active');
     $('#' + CSS.escape($(this).attr('id'))).addClass('active');
     id = $(this).attr('id');
-    
-    window.open('#pdata', '_self');
-    var checkExist = setInterval(function() {
-      if ($('input[type=search]').length > 0) {
-        $('input[type=search]').val(id).keyup();
-        clearInterval(checkExist);
-      }
-    }, 100);
-    window.open('#by-sample', '_self');
 })
+
+// previous/next sample buttons
+function sample_button(dir) {
+  x = $("#samples").find(".tab-pane");
+  i = x.map(function() { return this.className; }).get().findIndex(i => i === 'tab-pane active');
+  ids =  x.map(function() { return this.id; }).get();
+  
+  if (dir == "previous") {
+    i = i - 1;
+  }
+  if (dir == "next") {
+    i = i + 1;
+  }
+  console.log(i);
+  if (i < 0 | i > x.length - 1) {
+    alert("no " + dir + " sample...")
+  } else {
+    id = ids[i];
+    console.log(id);
+    $('.dropdown-menu li.active').removeClass('active');
+    $('.dropdown-tab').parent('li').eq(i).addClass('active');
+    $('#samples div.active').removeClass('active');
+    $('#' + CSS.escape(id)).addClass('active');
+  }
+}
+
+
+function flag() {
+  x = $("#samples").find(".tab-pane");
+  i = x.map(function() { return this.className; }).get().findIndex(i => i === 'tab-pane active');
+  ids =  x.map(function() { return this.id; }).get();
+  id = ids[i];
+  
+  var ct_sel = new crosstalk.SelectionHandle(Object.keys(__crosstalk_groups)[1]);
+  if (ct_sel.value.findIndex(x => x === id) == -1) {
+    $(".ReactTable").find("input[type=checkbox]").eq(i + 1).click()
+  } else {
+    alert("This sample is already flagged.")
+  }
+}
+
+function unflag() {
+  x = $("#samples").find(".tab-pane");
+  i = x.map(function() { return this.className; }).get().findIndex(i => i === 'tab-pane active');
+  ids =  x.map(function() { return this.id; }).get();
+  id = ids[i];
+  
+  var ct_sel = new crosstalk.SelectionHandle(Object.keys(__crosstalk_groups)[1]);
+  if (ct_sel.value.findIndex(x => x === id) == -1) {
+    alert("This sample is already unflagged.")
+  } else {
+    $(".ReactTable").find("input[type=checkbox]").eq(i + 1).click()
+  }
+}
 </script>
 
 
@@ -372,8 +403,41 @@ Sample metadata
 =====================================
 
 ```{r pData}
-DT::datatable(pd)
+library(crosstalk)
+data <- SharedData$new(pd)
+reactable(data, selection = "multiple", defaultSelected = which(pd$outlier), pagination = FALSE, onClick = JS("
+  function(rowInfo, colInfo) {
+    console.log(rowInfo);
+    i = rowInfo.index;
+    id = rowInfo.original.name;
+    $('.dropdown-menu li.active').removeClass('active');
+    $('.dropdown-tab').parent('li').eq(i).addClass('active');
+    $('#samples div.active').removeClass('active');
+    $('#' + CSS.escape(id)).addClass('active');
+    window.open('#by-sample', '_self');
+  }
+"))
 ```
+
+
+
+Re-run code
+=====================================
+
+```{r}
+tagList(
+  shiny::actionButton("make-button", "Make", onclick = "create_code()"),
+  pre(code(id = "impute"))
+)
+```
+
+<script>
+function create_code() {
+  var ct_sel = new crosstalk.SelectionHandle(Object.keys(__crosstalk_groups)[1]);
+  code = "impute_gates(gs, outliers = c('" + ct_sel.value.join("', '") + "'))";
+  document.getElementById("impute").innerHTML = code;
+}
+</script>
 
 
 
