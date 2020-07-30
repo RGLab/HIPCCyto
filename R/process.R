@@ -708,16 +708,19 @@ impute_gate <- function(gs, gate = "Lymphocytes", to_impute = NULL, batch = NULL
           this_eigs$values
         }))
         consensus_eigVals <- colMeans(good_eigVals)
-        # Consensus directions as vector sums
+
+        # Get consensus principal eigenvector as vector sum
         consensus_eigVec1 <- colMeans(do.call(rbind, lapply(good_eigs, function(this_eigs){
           this_eigs$vectors[,1]
         })))
-        consensus_eigVec2 <- colMeans(do.call(rbind, lapply(good_eigs, function(this_eigs){
-          this_eigs$vectors[,2]
-        })))
+
+        # Just get the second consensus eigenvector from the normal to the first
+        consensus_eigVec2 <- c(consensus_eigVec1[2], -consensus_eigVec1[1])
+        magnitude <- sqrt(sum(consensus_eigVec1^2))
+
         # Renormalize vector sums
-        consensus_eigVec1 <- consensus_eigVec1 / sqrt(sum(consensus_eigVec1^2))
-        consensus_eigVec2 <- consensus_eigVec2 / sqrt(sum(consensus_eigVec2^2))
+        consensus_eigVec1 <- consensus_eigVec1 / magnitude
+        consensus_eigVec2 <- consensus_eigVec2 / magnitude
 
         consensus_eigVecs <- cbind(consensus_eigVec1, consensus_eigVec2)
         consensus_cov <- consensus_eigVecs %*% diag(consensus_distance*consensus_eigVals) %*% solve(consensus_eigVecs)
