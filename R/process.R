@@ -648,7 +648,8 @@ get_markers <- function(study, modify = TRUE) {
 }
 
 #' @importFrom flowWorkspace lapply
-impute_gate <- function(gs, gate = "Lymphocytes", to_impute = NULL, batch = NULL, method = "consensus"){
+impute_gates <- function(gs, gate = "Lymphocytes", outliers = NULL, batch = NULL, method = "consensus"){
+  to_impute <- outliers
   if(is.null(to_impute) || length(to_impute) <= 0)
     message("No samples passed to to_impute arg of impute_gate.")
   else if(is.numeric(to_impute)){
