@@ -1,6 +1,6 @@
 Package: HIPCCyto
 Title: HIPC Cytometry
-Version: 0.0.0.9024
+Version: 0.0.1
 Authors@R: 
     person(given = "Ju Yeong",
            family = "Kim",
@@ -34,8 +34,10 @@ Imports:
     htmltools,
     htmlwidgets,
     plotly,
-    flexdashboard
+    flexdashboard,
+    diptest,
+    SIBER
 Suggests:
     Rlabkey,
     usethis
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
