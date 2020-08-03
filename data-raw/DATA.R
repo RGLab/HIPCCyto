@@ -17,10 +17,12 @@ DATA <- list(
   ),
   "SDY144" = list(
     map = data.frame(
-      alias = c("PE-Texas Red-A", "Qdot 565-A", "Qdot 565-A"),
-      channels = c("PE-TxR-A", "QDOT 565-A", "QDot 565-A")
+      alias = c("PE-Texas Red-A", "QDOT 565-A"),
+      channels = c("PE-TxR-A", "QDot 565-A")
     ),
-    target = c(60000, 5000)
+    target = c(60000, 5000),
+    channel_ref = c("Time", "FSC-A", "FSC-H", "FSC-W", "SSC-A", "SSC-H", "SSC-W", "FITC-A", "PE-A", "PE-Texas Red-A",
+                    "PE-Cy5-A", "PE-Cy7-A", "Pacific Blue-A", "QDOT 565-A", "APC-A", "Alexa 700-A", "APC-Cy7-A")
   ),
   "SDY212" = list(
     batch = "EXPERIMENT NAME"

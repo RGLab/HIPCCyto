@@ -155,13 +155,43 @@ process_panel <- function(files, debug_dir = NULL) {
 
 #' @importFrom flowWorkspace load_cytoset_from_fcs
 create_cytoset <- function(filePath, study, debug_dir = NULL) {
-  catf(">> Reading files and creating a flow set...")
-  map <- DATA[[study]]$map
+  catf(">> Reading files and creating a cytoset...")
+  study_info <- DATA[[study]]
+  map <- study_info$map
 
-  cs <- suppressMessages(load_cytoset_from_fcs(
-    filePath,
+  cs <- suppressMessages(cqc_load_fcs(
+    list.files(filePath, pattern = ".fcs", full.names = TRUE),
     num_threads = detect_cores()
   ))
+  channel_check <- cqc_check(cs, "channel")
+
+  # Check if inconsistent
+  if(length(unique(channel_check$group_id)) > 1){
+    # base::ifelse is not type-safe. use with caution
+    max.distance <- study_info$max.distance
+    if(is.null(max.distance))
+      # By default, no fuzzy match
+      max.distance <- 0.0
+    channel_ref <- study_info$channel_ref
+    if(is.null(channel_ref))
+      # By default, use the panel with the greatest consensus
+      channel_ref <- colnames(cs[[as.data.frame(channel_check)[which.max(channel_check$nObject), "object"]]])
+
+    # First try automatic match
+    channel_match <- cqc_match(channel_check, ref = channel_ref, max.distance = max.distance)
+
+    # Allow manual updating to override automatic match
+    if(!is.null(map)){
+      # Remove any existing match
+      tryCatch(channel_match <- cqc_match_remove(channel_match, map$channels), error = function(e){})
+      update_ref <- map$alias
+      names(update_ref) <- map$channels
+      channel_match <- cqc_match_update(channel_match, map = update_ref)
+    }
+    cqc_fix(channel_match)
+    # cs with consistent channels
+    cs <- cytoset(cs)
+  }
 
   save_debug(cs, "create_cs", debug_dir)
 
