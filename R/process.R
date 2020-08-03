@@ -153,7 +153,8 @@ process_panel <- function(files, debug_dir = NULL) {
 }
 
 
-#' @importFrom flowWorkspace load_cytoset_from_fcs
+#' @importFrom flowWorkspace load_cytoset_from_fcs cytoset
+#' @importFrom cytoqc cqc_load_fcs cqc_check cqc_match cqc_match_update cqc_match_remove cqc_fix
 create_cytoset <- function(filePath, study, debug_dir = NULL) {
   catf(">> Reading files and creating a cytoset...")
   study_info <- DATA[[study]]

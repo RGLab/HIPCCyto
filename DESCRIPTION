@@ -36,7 +36,8 @@ Imports:
     plotly,
     flexdashboard,
     diptest,
-    SIBER
+    SIBER,
+    cytoqc
 Suggests:
     Rlabkey,
     usethis
