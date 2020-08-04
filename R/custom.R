@@ -60,10 +60,10 @@ apply_dump_gate_custom <- function(gs, plot=FALSE, gate_range = c(1.8,2.8)) {
 
 compute_flowClusters_custom <- function(gs, debug_dir = NULL, nclust = 1) {
   catf(">> Computing for the optimal number of clusters (K) for each sample...")
-  nc <- gs_pop_get_data(gs, get_parent(gs))
-  flowClusters <- mclapply(sampleNames(nc), function(x) {
+  cs <- gs_pop_get_data(gs, get_parent(gs))
+  flowClusters <- mclapply(sampleNames(cs), function(x) {
     fc <- flowClust(
-      x = exprs(nc[[x]])[, c("FSC-A", "SSC-A")],
+      x = exprs(cs[[x]])[, c("FSC-A", "SSC-A")],
       K = nclust,
       trans = 0,
       min.count = -1,
@@ -73,7 +73,7 @@ compute_flowClusters_custom <- function(gs, debug_dir = NULL, nclust = 1) {
     fc@u <- matrix()
     fc
   }, mc.cores = detect_cores())
-  names(flowClusters) <- sampleNames(nc)
+  names(flowClusters) <- sampleNames(cs)
 
   save_debug(flowClusters, "compute_flowClusters", debug_dir)
 
