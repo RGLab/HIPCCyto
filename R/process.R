@@ -190,10 +190,9 @@ create_cytoset <- function(filePath, study, debug_dir = NULL) {
       channel_match <- cqc_match_update(channel_match, map = update_ref)
     }
     cqc_fix(channel_match)
-    # cs with consistent channels
-    cs <- cytoset(cs)
   }
-
+  # cs with consistent channels
+  cs <- cytoset(cs)
   save_debug(cs, "create_cs", debug_dir)
 
   cs
