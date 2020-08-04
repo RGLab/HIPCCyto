@@ -37,7 +37,8 @@ Imports:
     flexdashboard,
     diptest,
     SIBER,
-    cytoqc
+    cytoqc,
+    reactable
 Suggests:
     Rlabkey,
     usethis
