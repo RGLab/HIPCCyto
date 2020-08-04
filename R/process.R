@@ -232,9 +232,8 @@ merge_batch <- function(cs, study, debug_dir = NULL) {
           val <- description(x)[keyword][[1]]
           if (is.null(val)) val <- NA
           val
-        },
-        simplify = FALSE
-      )[phenoData(nc)$name],
+        }
+      )[phenoData(cs)$name],
       use.names = FALSE
     )
   }
