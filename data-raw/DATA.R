@@ -17,8 +17,8 @@ DATA <- list(
   ),
   "SDY144" = list(
     map = data.frame(
-      alias = c("PE-Texas Red-A", "Qdot 565-A", "Qdot 565-A"),
-      channels = c("PE-TxR-A", "QDOT 565-A", "QDot 565-A")
+      alias = c("PE-Texas Red-A", "QDOT 565-A"),
+      channels = c("PE-TxR-A", "QDot 565-A")
     ),
     target = c(60000, 5000)
   ),

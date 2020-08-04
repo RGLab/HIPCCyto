@@ -216,17 +216,17 @@ qc_polygon_gates <- function(gs, gate) {
 #' @importFrom ggplot2 xlab ylab geom_path
 #' @export
 plot_marker <- function(gs, marker) {
-  nc <- gs_pop_get_data(gs, get_parent(gs))
+  cs <- gs_pop_get_data(gs, get_parent(gs))
   pd <- pData(gs)
 
   if (is.null(names(marker))) {
-    channel <- getChannelMarker(nc[[1]], marker)$name
+    channel <- getChannelMarker(cs[[1]], marker)$name
   } else {
     channel <- names(marker)
   }
 
-  densities <- lapply(sampleNames(nc), function(x) {
-    tmp <- density(exprs(nc[[x]])[, channel])
+  densities <- lapply(sampleNames(cs), function(x) {
+    tmp <- density(exprs(cs[[x]])[, channel])
     df <- data.frame(
       sample = x,
       x = tmp$x,
@@ -482,8 +482,8 @@ test_outliers <- function(gs, cl = 0.99, step = 3) {
   }
 
   # step 1: dip test
-  nc <- gs_pop_get_data(gs, "Lymphocytes")
-  pv <- fsApply(nc, function(x) dip.test(exprs(x)[, "FSC-A"])$p.value)
+  cs <- gs_pop_get_data(gs, "Lymphocytes")
+  pv <- lapply(cs, function(x) dip.test(exprs(x)[, "FSC-A"])$p.value)
   outliers <- names(which(pv[, 1] < (1 - cl[1])))
   catf(">> step #1: dip test")
   catf(outliers)

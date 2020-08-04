@@ -130,16 +130,16 @@ process_panel <- function(files, debug_dir = NULL) {
   catf(paste(strsplit(panel, split = "; ")[[1]], collapse = "\n"))
 
   # load files
-  print(system.time(nc <- create_nc(files$filePath, study, debug_dir)))
+  print(system.time(cs <- create_cytoset(files$filePath, study, debug_dir)))
 
   # merge metadata
-  print(system.time(nc <- merge_metadata(nc, files, study, debug_dir)))
+  print(system.time(cs <- merge_metadata(cs, files, study, debug_dir)))
 
   # merge batch information
-  print(system.time(nc <- merge_batch(nc, study, debug_dir)))
+  print(system.time(cs <- merge_batch(cs, study, debug_dir)))
 
   # create a gating set
-  print(system.time(gs <- create_gs(nc, study, debug_dir)))
+  print(system.time(gs <- create_gs(cs, study, debug_dir)))
 
   # pre-process
   print(system.time(gs <- standardize_markernames(gs, study, debug_dir)))
@@ -153,72 +153,100 @@ process_panel <- function(files, debug_dir = NULL) {
 }
 
 
-#' @importFrom ncdfFlow read.ncdfFlowSet
-create_nc <- function(filePath, study, debug_dir = NULL) {
-  catf(">> Reading files and creating a flow set...")
-  map <- DATA[[study]]$map
+#' @importFrom flowWorkspace load_cytoset_from_fcs cytoset
+#' @importFrom cytoqc cqc_load_fcs cqc_check cqc_match cqc_match_update cqc_match_remove cqc_fix
+create_cytoset <- function(filePath, study, debug_dir = NULL) {
+  catf(">> Reading files and creating a cytoset...")
+  study_info <- DATA[[study]]
+  map <- study_info$map
 
-  nc <- suppressMessages(read.ncdfFlowSet(
+  cs <- suppressMessages(cqc_load_fcs(
     filePath,
-    channel_alias = map,
-    mc.cores = detect_cores()
+    num_threads = detect_cores()
   ))
+  channel_check <- cqc_check(cs, "channel")
 
-  save_debug(nc, "create_nc", debug_dir)
+  # Check if inconsistent
+  if(length(unique(channel_check$group_id)) > 1){
+    # base::ifelse is not type-safe. use with caution
+    max.distance <- study_info$max.distance
+    if(is.null(max.distance))
+      # By default, no fuzzy match
+      max.distance <- 0.0
+    channel_ref <- study_info$channel_ref
+    if(is.null(channel_ref))
+      # By default, use the panel with the greatest consensus
+      channel_ref <- colnames(cs[[as.data.frame(channel_check)[which.max(channel_check$nObject), "object"]]])
 
-  nc
+    # First try automatic match
+    channel_match <- cqc_match(channel_check, ref = channel_ref, max.distance = max.distance)
+
+    # Allow manual updating to override automatic match
+    if(!is.null(map)){
+      # Remove any existing match
+      tryCatch(channel_match <- cqc_match_remove(channel_match, map$channels), error = function(e){})
+      update_ref <- map$alias
+      names(update_ref) <- map$channels
+      channel_match <- cqc_match_update(channel_match, map = update_ref)
+    }
+    cqc_fix(channel_match)
+  }
+  # cs with consistent channels
+  cs <- cytoset(cs)
+  save_debug(cs, "create_cs", debug_dir)
+
+  cs
 }
 
-#' @importFrom ncdfFlow phenoData phenoData<-
-merge_metadata <- function(nc, files, study, debug_dir = NULL) {
+#' @importFrom flowWorkspace phenoData phenoData<-
+merge_metadata <- function(cs, files, study, debug_dir = NULL) {
   catf(">> Merging metedata...")
-  phenoData(nc)$study_accession <- files[phenoData(nc)$name, ]$studyAccession
-  phenoData(nc)$participant_id <- files[phenoData(nc)$name, ]$subjectAccession
-  phenoData(nc)$age_reported <- files[phenoData(nc)$name, ]$ageEvent
-  phenoData(nc)$gender <- files[phenoData(nc)$name, ]$gender
-  phenoData(nc)$race <- files[phenoData(nc)$name, ]$race
-  phenoData(nc)$study_time_collected <- files[phenoData(nc)$name, ]$studyTimeCollected
-  phenoData(nc)$study_time_collected_unit <- files[phenoData(nc)$name, ]$studyTimeCollectedUnit
-  phenoData(nc)$file_info_name <- files[phenoData(nc)$name, ]$fileName
-  phenoData(nc)$description <- files[phenoData(nc)$name, ]$fileDetail
-  phenoData(nc)$type <- files[phenoData(nc)$name, ]$biosampleType
-  phenoData(nc)$subtype <- files[phenoData(nc)$name, ]$biosampleSubtype
-  phenoData(nc)$cohort <- files[phenoData(nc)$name, ]$armName
+  phenoData(cs)$study_accession <- files[phenoData(cs)$name, ]$studyAccession
+  phenoData(cs)$participant_id <- files[phenoData(cs)$name, ]$subjectAccession
+  phenoData(cs)$age_reported <- files[phenoData(cs)$name, ]$ageEvent
+  phenoData(cs)$gender <- files[phenoData(cs)$name, ]$gender
+  phenoData(cs)$race <- files[phenoData(cs)$name, ]$race
+  phenoData(cs)$study_time_collected <- files[phenoData(cs)$name, ]$studyTimeCollected
+  phenoData(cs)$study_time_collected_unit <- files[phenoData(cs)$name, ]$studyTimeCollectedUnit
+  phenoData(cs)$file_info_name <- files[phenoData(cs)$name, ]$fileName
+  phenoData(cs)$description <- files[phenoData(cs)$name, ]$fileDetail
+  phenoData(cs)$type <- files[phenoData(cs)$name, ]$biosampleType
+  phenoData(cs)$subtype <- files[phenoData(cs)$name, ]$biosampleSubtype
+  phenoData(cs)$cohort <- files[phenoData(cs)$name, ]$armName
 
-  save_debug(nc, "merge_metadata", debug_dir)
+  save_debug(cs, "merge_metadata", debug_dir)
 
-  nc
+  cs
 }
 
-#' @importFrom flowCore fsApply description
-merge_batch <- function(nc, study, debug_dir = NULL) {
+#' @importFrom flowCore description
+merge_batch <- function(cs, study, debug_dir = NULL) {
   catf(">> Merging batch column...")
   keyword <- DATA[[study]]$batch
 
   if (!is.null(keyword)) {
-    phenoData(nc)$batch <- unlist(
-      fsApply(
-        x = nc,
+    phenoData(cs)$batch <- unlist(
+      lapply(
+        cs,
         FUN = function(x) {
           val <- description(x)[keyword][[1]]
           if (is.null(val)) val <- NA
           val
-        },
-        simplify = FALSE
-      )[phenoData(nc)$name],
+        }
+      )[phenoData(cs)$name],
       use.names = FALSE
     )
   }
 
-  save_debug(nc, "merge_batch", debug_dir)
+  save_debug(cs, "merge_batch", debug_dir)
 
-  nc
+  cs
 }
 
 #' @importFrom flowWorkspace GatingSet
-create_gs <- function(nc, study, debug_dir = NULL) {
+create_gs <- function(cs, study, debug_dir = NULL) {
   catf(">> Creating a gating set...")
-  gs <- GatingSet(nc)
+  gs <- GatingSet(cs)
 
   save_debug(gs, "create_gs", debug_dir)
 
@@ -252,18 +280,18 @@ standardize_markernames <- function(gs, study, debug_dir = NULL) {
   gs
 }
 
-#' @importFrom flowWorkspace gs_pop_get_data compensate
+#' @importFrom flowWorkspace gs_pop_get_data compensate lapply
 #' @importFrom flowCore spillover
 compensate_gs <- function(gs, study, debug_dir = NULL) {
   catf(">> Applying compensation...")
-  nc <- gs_pop_get_data(gs)
+  cs <- gs_pop_get_data(gs)
   cols <- colnames(gs)
-  comp <- fsApply(nc, function(x) {
+  comp <- lapply(cs, function(x) {
     spills <- spillover(x)
     spill <- spills[!sapply(spills, is.null)][[1]] # pick the first non-empty matrix
     keep <- colnames(spill) %in% cols
     spill[keep, keep] # remove extra channels
-  }, simplify = FALSE)
+  })
 
   gs <- compensate(gs, comp)
 
@@ -316,16 +344,16 @@ gate_gs <- function(gs, study, debug_dir = NULL) {
 
 # HELPER FUNCTIONS -------------------------------------------------------------
 
-#' @importFrom ncdfFlow getFileName save_ncfs
+#' @importFrom flowWorkspace cs_get_h5_file_path save_cytoset
 #' @importFrom flowWorkspace save_gs
 save_debug <- function(obj, func, debug_dir = NULL) {
   if (!is.null(debug_dir)) {
     path <- tempfile(paste0(func, "_"), debug_dir)
     catf(sprintf(">> Storing intermediate file to %s for debugging...", path))
-    if (is(obj, "ncdfFlowSet")) {
-      save_ncfs(obj, path, cdf = "copy")
+    if (is(obj, "cytoset")) {
+      save_cytoset(obj, path)
     } else if (is(obj, "GatingSet")) {
-      save_gs(obj, path, cdf = "copy")
+      save_gs(obj, path, backend_opt = "copy")
     } else {
       saveRDS(obj, path)
     }
@@ -369,19 +397,19 @@ flowclust <- function(x) {
 #' @importFrom slurmR slurm_available Slurm_lapply
 compute_flowClusters <- function(gs, debug_dir = NULL) {
   catf(">> Computing for the optimal number of clusters (K) for each sample...")
-  nc <- gs_pop_get_data(gs, get_parent(gs))
+  cs <- gs_pop_get_data(gs, get_parent(gs))
 
   if (slurm_available()) {
     catf(">> Submitting flowClust jobs to slurm...")
-    ex <- lapply(sampleNames(nc), function(x) exprs(nc[[x]])[, c("FSC-A", "SSC-A")])
-    names(ex) <- sampleNames(nc)
+    ex <- lapply(sampleNames(cs), function(x) exprs(cs[[x, returnType = "cytoframe"]])[, c("FSC-A", "SSC-A")])
+    names(ex) <- sampleNames(cs)
     flowClusters <- Slurm_lapply(ex, flowclust, njobs = length(ex), mc.cores = 1L, sbatch_opt = list("constraint" = "gizmok"))
   } else {
-    flowClusters <- mclapply(sampleNames(nc), function(x) {
-      ex <- exprs(nc[[x]])[, c("FSC-A", "SSC-A")]
+    flowClusters <- mclapply(sampleNames(cs), function(x) {
+      ex <- exprs(cs[[x, returnType = "cytoframe"]])[, c("FSC-A", "SSC-A")]
       flowclust(ex)
     }, mc.cores = detect_cores())
-    names(flowClusters) <- sampleNames(nc)
+    names(flowClusters) <- sampleNames(cs)
   }
 
   save_debug(flowClusters, "compute_flowClusters", debug_dir)
