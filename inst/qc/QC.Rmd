@@ -404,6 +404,7 @@ Sample metadata
 
 ```{r pData}
 library(crosstalk)
+library(reactable)
 data <- SharedData$new(pd)
 reactable(data, selection = "multiple", defaultSelected = which(pd$outlier), pagination = FALSE, onClick = JS("
   function(rowInfo, colInfo) {
