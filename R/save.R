@@ -484,7 +484,7 @@ test_outliers <- function(gs, cl = 0.99, step = 3) {
   # step 1: dip test
   cs <- gs_pop_get_data(gs, "Lymphocytes")
   pv <- lapply(cs, function(x) dip.test(exprs(x)[, "FSC-A"])$p.value)
-  outliers <- names(which(pv[, 1] < (1 - cl[1])))
+  outliers <- names(which(pv < (1 - cl[1])))
   catf(">> step #1: dip test")
   catf(outliers)
   if (step == 1) return(outliers)
