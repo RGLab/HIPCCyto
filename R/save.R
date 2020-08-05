@@ -340,6 +340,7 @@ save_spillover_heatmaps <- function(gs, output_dir) {
       cluster_cols = FALSE,
       cluster_rows = FALSE,
       display_numbers = TRUE,
+      main = "Spillover Matrix",
       filename = filename
     )
 
