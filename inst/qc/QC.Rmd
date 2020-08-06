@@ -298,8 +298,8 @@ tagList(
             class = "sample-column",
             style = "flex: 50%; padding: 5px;",
             img(src = thisPlotInfo$gates, style = "height: 700px; width: 100%; object-fit: contain"),
-            shiny::actionButton(paste0(thisPlotInfo$name, "-correct"), "Correct lymph gate", onclick = "unflag()"),
-            shiny::actionButton(paste0(thisPlotInfo$name, "-incorrect"), "Incorrect lymph gate", onclick = "flag()")
+            tag("button", list("Correct lymphocyte gate", id = paste0(thisPlotInfo$name, "-correct"), class = "btn btn-default", onclick = "unflag()", style = "background-color: green")),
+            tag("button", list("Incorrect lymphocyte gate", id = paste0(thisPlotInfo$name, "-incorrect"), class = "btn btn-default", onclick = "flag()", style = "background-color: red"))
           ),
           div(
             class = "sample-column",
@@ -410,7 +410,7 @@ img(
 Sample metadata
 =====================================
 
-```{modal}
+```{r modal}
 bs_modal(id = "modal", title = "Lymphocyte gate imputation code", body = pre(code(id = "impute")))
 bs <- bs_button("Make imputation code", onclick = "create_code()") %>%
   bs_attach_modal(id_modal = "modal")
