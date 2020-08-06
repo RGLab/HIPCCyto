@@ -140,6 +140,7 @@ if ("Live" %in% gates) {
           $('.dropdown-tab').parent('li').eq(i-1).addClass('active');
           $('#samples div.active').removeClass('active');
           $('#' + CSS.escape(id)).addClass('active');
+          window.open('#by-sample', '_self');
         });
       } 
     ")
@@ -167,6 +168,7 @@ if ("Nondebris" %in% gates) {
           $('.dropdown-tab').parent('li').eq(i-1).addClass('active');
           $('#samples div.active').removeClass('active');
           $('#' + CSS.escape(id)).addClass('active');
+          window.open('#by-sample', '_self');
         });
       } 
     ")
@@ -194,6 +196,7 @@ ggplotly(p) %>%
         $('.dropdown-tab').parent('li').eq(i-1).addClass('active');
         $('#samples div.active').removeClass('active');
         $('#' + CSS.escape(id)).addClass('active');
+        window.open('#by-sample', '_self');
       });
     } 
   ")
