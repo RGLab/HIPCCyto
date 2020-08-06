@@ -18,6 +18,8 @@ library(ggcyto)
 library(plotly)
 library(htmltools)
 library(htmlwidgets)
+library(crosstalk)
+library(reactable)
 ```
 
 ```{r load, include=FALSE}
@@ -42,13 +44,13 @@ Column
 ### Summary
 
 ```{r summary}
-knitr::kable(
+reactable(
   data.frame(
     "n_samples" = length(gs),
     "n_markers" = length(markernames(gs)),
     "n_participants" = length(unique(pd$participant_id))
   ),
-  align = "c"
+  sortable = FALSE
 )
 ```
 
@@ -62,7 +64,7 @@ flowWorkspace::plot(gs)
 
 ```{r panel}
 m <- markernames(gs)
-knitr::kable(data.frame(Channel = names(m), Marker =  m, row.names = NULL))
+reactable(data.frame(Channel = names(m), Marker =  m, row.names = NULL), sortable = FALSE)
 ```
 
 Column {.tabset}
@@ -408,8 +410,6 @@ Sample metadata
 =====================================
 
 ```{r pData}
-library(crosstalk)
-library(reactable)
 data <- SharedData$new(pd)
 reactable(data, selection = "multiple", defaultSelected = which(pd$outlier), pagination = FALSE, onClick = JS("
   function(rowInfo, colInfo) {
