@@ -18,8 +18,9 @@ library(ggcyto)
 library(plotly)
 library(htmltools)
 library(htmlwidgets)
-library(crosstalk)
 library(reactable)
+library(bsplus)
+library(crosstalk)
 ```
 
 ```{r load, include=FALSE}
@@ -409,6 +410,14 @@ img(
 Sample metadata
 =====================================
 
+```{modal}
+bs_modal(id = "modal", title = "Lymphocyte gate imputation code", body = pre(code(id = "impute")))
+bs <- bs_button("Make imputation code", onclick = "create_code()") %>%
+  bs_attach_modal(id_modal = "modal")
+bs$attribs$class <- ""
+bs
+```
+
 ```{r pData}
 data <- SharedData$new(pd)
 reactable(data, selection = "multiple", defaultSelected = which(pd$outlier), pagination = FALSE, onClick = JS("
@@ -423,18 +432,6 @@ reactable(data, selection = "multiple", defaultSelected = which(pd$outlier), pag
     window.open('#by-sample', '_self');
   }
 "))
-```
-
-
-
-Re-run code
-=====================================
-
-```{r}
-tagList(
-  shiny::actionButton("make-button", "Make", onclick = "create_code()"),
-  pre(code(id = "impute"))
-)
 ```
 
 <script>
