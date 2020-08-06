@@ -79,28 +79,28 @@ ImmPortR:::query(sprintf("study/summary/%s", s$study))
 
 ### Tables
 
-#### Sample types
+#### 
 
 ```{r sample-types}
-table(pd$type)
+reactable(as.data.frame(table(pd$type)), pagination = FALSE, sortable = FALSE, columns = list(Var1 = colDef(name = c("Sample type"))))
 ```
 
-#### Timepoints
+#### 
 
 ```{r timepoints}
-table(paste(pd$study_time_collected, pd$study_time_collected_unit))
+reactable(as.data.frame(table(paste(pd$study_time_collected, pd$study_time_collected_unit))), pagination = FALSE, sortable = FALSE, columns = list(Var1 = colDef(name = c("Study time collected"))))
 ```
 
-#### Cohorts
+#### 
 
 ```{r cohorts}
-table(pd$cohort)
+reactable(as.data.frame(table(pd$cohort)), pagination = FALSE, sortable = FALSE, columns = list(Var1 = colDef(name = c("Cohort"))))
 ```
 
-#### Batches
+#### 
 
 ```{r batches}
-table(pd$batch)
+reactable(as.data.frame(table(pd$batch)), pagination = FALSE, sortable = FALSE, columns = list(Var1 = colDef(name = c("Batch"))))
 ```
 
 ### Custom processing parameters
@@ -226,7 +226,7 @@ plotInfo <- lapply(
       i = i,
       gates = rmarkdown:::base64_encode_file(file.path(params$gs_dir, sprintf("gates/%s.png", sample_names[i])), base64enc::base64encode),
       spillover = rmarkdown:::base64_encode_file(file.path(params$gs_dir, sprintf("spillover/%s.png", sample_names[i])), base64enc::base64encode),
-      pdata = jsonlite::toJSON(pd[i, ], pretty = TRUE)
+      pdata = pd[i, ]
     )
   })
 ```
@@ -304,8 +304,16 @@ tagList(
           div(
             class = "sample-column",
             style = "flex: 50%; padding: 5px;",
-            img(src = thisPlotInfo$spillover, style = "height: 350px; width: 100%; object-fit: contain"),
-            pre(code(thisPlotInfo$pdata))
+            div(
+              div(
+                img(src = thisPlotInfo$spillover, style = "height: 100%; width: 100%; object-fit: contain"),
+                style = "height: 450px"
+              ),
+              div(
+                reactable(t(thisPlotInfo$pdata), sortable = FALSE, pagination = FALSE),
+                style = "height: 300px"
+              )
+            )
           )
         )
       )
