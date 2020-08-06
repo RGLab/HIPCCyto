@@ -222,7 +222,8 @@ plotInfo <- lapply(
       name = sample_names[i],
       i = i,
       gates = rmarkdown:::base64_encode_file(file.path(params$gs_dir, sprintf("gates/%s.png", sample_names[i])), base64enc::base64encode),
-      spillover = rmarkdown:::base64_encode_file(file.path(params$gs_dir, sprintf("spillover/%s.png", sample_names[i])), base64enc::base64encode)
+      spillover = rmarkdown:::base64_encode_file(file.path(params$gs_dir, sprintf("spillover/%s.png", sample_names[i])), base64enc::base64encode),
+      pdata = jsonlite::toJSON(pd[i, ], pretty = TRUE)
     )
   })
 ```
@@ -293,14 +294,15 @@ tagList(
           div(
             class = "sample-column",
             style = "flex: 50%; padding: 5px;",
-            img(src = thisPlotInfo$gates, style = "height: 700px; width: 100%; object-fit: contain")
+            img(src = thisPlotInfo$gates, style = "height: 700px; width: 100%; object-fit: contain"),
+            shiny::actionButton(paste0(thisPlotInfo$name, "-correct"), "Correct lymph gate", onclick = "unflag()"),
+            shiny::actionButton(paste0(thisPlotInfo$name, "-incorrect"), "Incorrect lymph gate", onclick = "flag()")
           ),
           div(
             class = "sample-column",
             style = "flex: 50%; padding: 5px;",
-            img(src = thisPlotInfo$spillover, style = "height: 600px; width: 100%; object-fit: contain"),
-            shiny::actionButton(paste0(thisPlotInfo$name, "-correct"), "Correct lymph gate", onclick = "unflag()"),
-            shiny::actionButton(paste0(thisPlotInfo$name, "-incorrect"), "Incorrect lymph gate", onclick = "flag()")
+            img(src = thisPlotInfo$spillover, style = "height: 350px; width: 100%; object-fit: contain"),
+            pre(code(thisPlotInfo$pdata))
           )
         )
       )
