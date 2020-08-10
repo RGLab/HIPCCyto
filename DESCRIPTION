@@ -37,7 +37,9 @@ Imports:
     diptest,
     SIBER,
     cytoqc,
-    reactable
+    reactable,
+    crosstalk,
+    bsplus
 Suggests:
     usethis
 Remotes:
