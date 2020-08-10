@@ -18,6 +18,9 @@ library(ggcyto)
 library(plotly)
 library(htmltools)
 library(htmlwidgets)
+library(reactable)
+library(bsplus)
+library(crosstalk)
 ```
 
 ```{r load, include=FALSE}
@@ -42,13 +45,13 @@ Column
 ### Summary
 
 ```{r summary}
-knitr::kable(
+reactable(
   data.frame(
     "n_samples" = length(gs),
     "n_markers" = length(markernames(gs)),
     "n_participants" = length(unique(pd$participant_id))
   ),
-  align = "c"
+  sortable = FALSE
 )
 ```
 
@@ -62,7 +65,7 @@ flowWorkspace::plot(gs)
 
 ```{r panel}
 m <- markernames(gs)
-knitr::kable(data.frame(Channel = names(m), Marker =  m, row.names = NULL))
+reactable(data.frame(Channel = names(m), Marker =  m, row.names = NULL), sortable = FALSE)
 ```
 
 Column {.tabset}
@@ -76,28 +79,28 @@ ImmPortR:::query(sprintf("study/summary/%s", s$study))
 
 ### Tables
 
-#### Sample types
+#### 
 
 ```{r sample-types}
-table(pd$type)
+reactable(as.data.frame(table(pd$type)), pagination = FALSE, sortable = FALSE, columns = list(Var1 = colDef(name = c("Sample type"))))
 ```
 
-#### Timepoints
+#### 
 
 ```{r timepoints}
-table(paste(pd$study_time_collected, pd$study_time_collected_unit))
+reactable(as.data.frame(table(paste(pd$study_time_collected, pd$study_time_collected_unit))), pagination = FALSE, sortable = FALSE, columns = list(Var1 = colDef(name = c("Study time collected"))))
 ```
 
-#### Cohorts
+#### 
 
 ```{r cohorts}
-table(pd$cohort)
+reactable(as.data.frame(table(pd$cohort)), pagination = FALSE, sortable = FALSE, columns = list(Var1 = colDef(name = c("Cohort"))))
 ```
 
-#### Batches
+#### 
 
 ```{r batches}
-table(pd$batch)
+reactable(as.data.frame(table(pd$batch)), pagination = FALSE, sortable = FALSE, columns = list(Var1 = colDef(name = c("Batch"))))
 ```
 
 ### Custom processing parameters
@@ -140,6 +143,7 @@ if ("Live" %in% gates) {
           $('.dropdown-tab').parent('li').eq(i-1).addClass('active');
           $('#samples div.active').removeClass('active');
           $('#' + CSS.escape(id)).addClass('active');
+          window.open('#by-sample', '_self');
         });
       } 
     ")
@@ -167,6 +171,7 @@ if ("Nondebris" %in% gates) {
           $('.dropdown-tab').parent('li').eq(i-1).addClass('active');
           $('#samples div.active').removeClass('active');
           $('#' + CSS.escape(id)).addClass('active');
+          window.open('#by-sample', '_self');
         });
       } 
     ")
@@ -194,6 +199,7 @@ ggplotly(p) %>%
         $('.dropdown-tab').parent('li').eq(i-1).addClass('active');
         $('#samples div.active').removeClass('active');
         $('#' + CSS.escape(id)).addClass('active');
+        window.open('#by-sample', '_self');
       });
     } 
   ")
@@ -219,7 +225,8 @@ plotInfo <- lapply(
       name = sample_names[i],
       i = i,
       gates = rmarkdown:::base64_encode_file(file.path(params$gs_dir, sprintf("gates/%s.png", sample_names[i])), base64enc::base64encode),
-      spillover = rmarkdown:::base64_encode_file(file.path(params$gs_dir, sprintf("spillover/%s.png", sample_names[i])), base64enc::base64encode)
+      spillover = rmarkdown:::base64_encode_file(file.path(params$gs_dir, sprintf("spillover/%s.png", sample_names[i])), base64enc::base64encode),
+      pdata = pd[i, ]
     )
   })
 ```
@@ -290,14 +297,23 @@ tagList(
           div(
             class = "sample-column",
             style = "flex: 50%; padding: 5px;",
-            img(src = thisPlotInfo$gates, style = "height: 700px; width: 100%; object-fit: contain")
+            img(src = thisPlotInfo$gates, style = "height: 700px; width: 100%; object-fit: contain"),
+            tag("button", list("Correct lymphocyte gate", id = paste0(thisPlotInfo$name, "-correct"), class = "btn btn-default", onclick = "unflag()", style = "background-color: green")),
+            tag("button", list("Incorrect lymphocyte gate", id = paste0(thisPlotInfo$name, "-incorrect"), class = "btn btn-default", onclick = "flag()", style = "background-color: red"))
           ),
           div(
             class = "sample-column",
             style = "flex: 50%; padding: 5px;",
-            img(src = thisPlotInfo$spillover, style = "height: 600px; width: 100%; object-fit: contain"),
-            shiny::actionButton(paste0(thisPlotInfo$name, "-correct"), "Correct lymph gate", onclick = "unflag()"),
-            shiny::actionButton(paste0(thisPlotInfo$name, "-incorrect"), "Incorrect lymph gate", onclick = "flag()")
+            div(
+              div(
+                img(src = thisPlotInfo$spillover, style = "height: 100%; width: 100%; object-fit: contain"),
+                style = "height: 450px"
+              ),
+              div(
+                reactable(t(thisPlotInfo$pdata), sortable = FALSE, pagination = FALSE),
+                style = "height: 300px"
+              )
+            )
           )
         )
       )
@@ -402,9 +418,15 @@ img(
 Sample metadata
 =====================================
 
+```{r modal}
+bs_modal(id = "modal", title = "Lymphocyte gate imputation code", body = pre(code(id = "impute")))
+bs <- bs_button("Make imputation code", onclick = "create_code()") %>%
+  bs_attach_modal(id_modal = "modal")
+bs$attribs$class <- ""
+bs
+```
+
 ```{r pData}
-library(crosstalk)
-library(reactable)
 data <- SharedData$new(pd)
 reactable(data, selection = "multiple", defaultSelected = which(pd$outlier), pagination = FALSE, onClick = JS("
   function(rowInfo, colInfo) {
@@ -418,18 +440,6 @@ reactable(data, selection = "multiple", defaultSelected = which(pd$outlier), pag
     window.open('#by-sample', '_self');
   }
 "))
-```
-
-
-
-Re-run code
-=====================================
-
-```{r}
-tagList(
-  shiny::actionButton("make-button", "Make", onclick = "create_code()"),
-  pre(code(id = "impute"))
-)
 ```
 
 <script>

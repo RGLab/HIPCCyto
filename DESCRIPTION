@@ -1,13 +1,14 @@
 Package: HIPCCyto
 Title: HIPC Cytometry
 Version: 0.0.2
-Authors@R:c(
+Authors@R: c(
     person("Ju Yeong", "Kim", role = c("aut", "cre"), email = "jkim2345@fredhutch.org"),
     person("Jake", "Wagner", role = "aut"))
 Description: HIPC Cytometry.
 License: What license it uses
 Encoding: UTF-8
 LazyData: true
+biocViews: FlowCytometry
 Depends: 
     flowCore,
     R (>= 4.0.0)
@@ -38,6 +39,10 @@ Imports:
     cytoqc,
     reactable
 Suggests:
-    Rlabkey,
     usethis
+Remotes:
+    RGLab/ImmPortR,
+    RGLab/cytoqc
 RoxygenNote: 7.1.1
+URL: https://github.com/RGLab/HIPCCyto
+BugReports: https://github.com/RGLab/HIPCCyto/issues
