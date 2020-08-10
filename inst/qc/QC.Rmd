@@ -104,6 +104,12 @@ reactable(as.data.frame(table(pd$cohort)), pagination = FALSE, sortable = FALSE,
 reactable(as.data.frame(table(pd$batch)), pagination = FALSE, sortable = FALSE, columns = list(Var1 = colDef(name = c("Batch"))))
 ```
 
+#### 
+
+```{r outliers}
+reactable(as.data.frame(table(pd$outlier)), pagination = FALSE, sortable = FALSE, columns = list(Var1 = colDef(name = c("Outliers"))))
+```
+
 ### Custom processing parameters
 
 ```{r parameters}
@@ -423,7 +429,14 @@ Sample metadata
 =====================================
 
 ```{r modal}
-bs_modal(id = "modal", title = "Lymphocyte gate imputation code", body = pre(code(id = "impute")))
+body <- div(
+  div(
+    span(id = "n-selected", ""),
+    span("samples selected for lymphocyte gate imputation.")
+  ),
+  pre(code(id = "impute"), style = "height: 500px")
+)
+bs_modal(id = "modal", title = "Lymphocyte gate imputation code", body = body)
 bs <- bs_button("Make imputation code", onclick = "create_code()") %>%
   bs_attach_modal(id_modal = "modal")
 bs$attribs$class <- ""
@@ -449,8 +462,13 @@ reactable(data, selection = "multiple", defaultSelected = which(pd$outlier), pag
 <script>
 function create_code() {
   var ct_sel = new crosstalk.SelectionHandle(Object.keys(__crosstalk_groups)[1]);
-  code = "impute_gates(gs, outliers = c('" + ct_sel.value.join("', '") + "'))";
+  var code = "";
+  if (ct_sel.value.length > 0) {
+    code = "impute_gates(gs, outliers = c('" + ct_sel.value.join("', '") + "'))";
+    
+  }
   document.getElementById("impute").innerHTML = code;
+  document.getElementById("n-selected").innerHTML = ct_sel.value.length;
 }
 </script>
 
