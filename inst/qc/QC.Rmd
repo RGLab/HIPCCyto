@@ -47,9 +47,10 @@ Column
 ```{r summary}
 reactable(
   data.frame(
-    "n_samples" = length(gs),
-    "n_markers" = length(markernames(gs)),
-    "n_participants" = length(unique(pd$participant_id))
+    "Number of Samples" = length(gs),
+    "Number of Markers" = length(markernames(gs)),
+    "Number of Participants" = length(unique(pd$participant_id)),
+    check.names = FALSE
   ),
   sortable = FALSE
 )
