@@ -299,8 +299,11 @@ tagList(
             class = "sample-column",
             style = "flex: 50%; padding: 5px;",
             img(src = thisPlotInfo$gates, style = "height: 700px; width: 100%; object-fit: contain"),
-            tag("button", list("Correct lymphocyte gate", id = paste0(thisPlotInfo$name, "-correct"), class = "btn btn-default", onclick = "unflag()", style = "background-color: green")),
-            tag("button", list("Incorrect lymphocyte gate", id = paste0(thisPlotInfo$name, "-incorrect"), class = "btn btn-default", onclick = "flag()", style = "background-color: red"))
+            div(
+              style = "display: flex; justify-content: center;",
+              tag("button", list("Correct lymphocyte gate", id = paste0(thisPlotInfo$name, "-correct"), class = "btn btn-default", onclick = "unflag()", style = "background-color: green")),
+              tag("button", list("Incorrect lymphocyte gate", id = paste0(thisPlotInfo$name, "-incorrect"), class = "btn btn-default", onclick = "flag()", style = "background-color: red"))
+            )
           ),
           div(
             class = "sample-column",
