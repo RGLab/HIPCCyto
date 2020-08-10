@@ -676,7 +676,7 @@ get_markers <- function(study, modify = TRUE) {
 }
 
 #' @importFrom flowWorkspace lapply
-impute_gates <- function(gs, gate = "Lymphocytes", outliers = NULL, batch = NULL, method = "consensus"){
+impute_gates <- function(gs, gate = "Lymphocytes", outliers = NULL, batch = NULL, method = "consensus", plot = FALSE){
   to_impute <- outliers
   if(is.null(to_impute) || length(to_impute) <= 0)
     message("No samples passed to to_impute arg of impute_gate.")
@@ -736,7 +736,9 @@ impute_gates <- function(gs, gate = "Lymphocytes", outliers = NULL, batch = NULL
         good_eigVals <- do.call(rbind, lapply(good_eigs, function(this_eigs){
           this_eigs$values
         }))
-        consensus_eigVals <- colMeans(good_eigVals)
+        good_radii <- sqrt(good_eigVals)
+        consensus_radii <- colMeans(good_radii)
+        consensus_eigVals <- consensus_radii^2
 
         # Get consensus principal eigenvector as vector sum
         consensus_eigVec1 <- colMeans(do.call(rbind, lapply(good_eigs, function(this_eigs){
@@ -752,13 +754,40 @@ impute_gates <- function(gs, gate = "Lymphocytes", outliers = NULL, batch = NULL
         consensus_eigVec2 <- consensus_eigVec2 / magnitude
 
         consensus_eigVecs <- cbind(consensus_eigVec1, consensus_eigVec2)
-        consensus_cov <- consensus_eigVecs %*% diag(consensus_distance*consensus_eigVals) %*% solve(consensus_eigVecs)
+        consensus_cov <- consensus_eigVecs %*% diag(consensus_eigVals) %*% solve(consensus_eigVecs)
         rownames(consensus_cov) <- colnames(consensus_cov) <- names(consensus_location)
 
         # Wrapping it together in consensus ellipsoidGate object:
-        consensus_eg <- ellipsoidGate(gate=consensus_cov, mean=consensus_location, filterId="consensus_ellipsoidGate")
+        consensus_eg <- ellipsoidGate(gate=consensus_cov, mean=consensus_location, distance = consensus_distance, filterId="consensus_ellipsoidGate")
         imputed_gates <- lapply(seq_along(to_impute_sn_batch), function(dummy) consensus_eg)
         names(imputed_gates) <- to_impute_sn_batch
+
+        if(plot){
+          # Currently ggcyto does not directly support gate-only plots without data
+          # So this hacky workaround is necessary
+          dummy <- matrix(as.numeric(c(0,0)), nrow = 1, ncol = 2)
+          gate_dims <- colnames(consensus_eg@cov)
+          colnames(dummy) <- gate_dims
+          fr <- flowFrame(dummy)
+
+          # Scale the window to fit all gates
+          max_bounds <- lapply(good_gates, function(gate){
+            pg <- as(gate, "polygonGate")
+            maxima <- apply(pg@boundaries, 2, max)
+          })
+          max_bounds <- apply(do.call(rbind, max_bounds), 2, max)
+
+          # Blank canvas
+          combined <- ggcyto(fr, aes_(gate_dims[[1]], gate_dims[[2]])) +
+            ggcyto_par_set(limits=list(x=c(0,max_bounds[[1]]), y=c(0,max_bounds[[2]])))
+
+          # Add all the good template gates
+          good_gate_geoms <- lapply((good_gates), geom_gate)
+          combined <- Reduce(`+`, c(list(combined), good_gate_geoms))
+
+          # Add the consensus gate and plot
+          print(combined + geom_gate(consensus_eg, colour = "blue"))
+        }
 
         gs_pop_set_gate(gs[to_impute_sn_batch], "Lymphocytes", imputed_gates)
       }
