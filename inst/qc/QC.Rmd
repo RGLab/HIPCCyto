@@ -436,7 +436,13 @@ body <- div(
   ),
   pre(code(id = "impute"), style = "height: 500px")
 )
-bs_modal(id = "modal", title = "Lymphocyte gate imputation code", body = body)
+bs_modal(
+  id = "modal", title = "Lymphocyte gate imputation code", body = body, 
+  footer = list(
+    bs_button("Copy", onclick = "copy_code()"),
+    bs_modal_closebutton("Close")
+  )
+)
 bs <- bs_button("Make imputation code", onclick = "create_code()") %>%
   bs_attach_modal(id_modal = "modal")
 bs$attribs$class <- ""
@@ -464,11 +470,22 @@ function create_code() {
   var ct_sel = new crosstalk.SelectionHandle(Object.keys(__crosstalk_groups)[1]);
   var code = "";
   if (ct_sel.value.length > 0) {
-    code = "impute_gates(gs, outliers = c('" + ct_sel.value.join("', '") + "'))";
+    code = "impute_gates(gs, outliers = c(\n  '" + ct_sel.value.join("',\n  '") + "'\n))";
     
   }
   document.getElementById("impute").innerHTML = code;
   document.getElementById("n-selected").innerHTML = ct_sel.value.length;
+}
+
+function copy_code() {
+  var text = document.getElementById("impute").innerHTML;
+  var content = document.getElementById("modal")
+  var copyText = document.createElement("textarea");
+  content.appendChild(copyText);
+  copyText.value = text;
+  copyText.select();
+  document.execCommand("Copy");
+  copyText.remove();
 }
 </script>
 
