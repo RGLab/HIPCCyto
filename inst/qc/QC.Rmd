@@ -26,9 +26,14 @@ library(crosstalk)
 ```{r load, include=FALSE}
 gs <- load_gs(file.path(params$gs_dir, "gs"))
 pd <- pData(gs)
-outliers <- HIPCCyto:::find_outliers(gs)
-pd$outlier <- pd$name %in% outliers
-pData(gs) <- pd
+visible <- "hidden"
+to_impute <- is.null(pd$imputed)
+if (isTRUE(to_impute)) {
+  outliers <- HIPCCyto:::find_outliers(gs)
+  pd$outlier <- pd$name %in% outliers
+  pData(gs) <- pd
+  visible <- "visible"
+}
 s <- summarize_gating_set(gs)
 ```
 
@@ -106,14 +111,16 @@ reactable(as.data.frame(table(pd$batch)), pagination = FALSE, sortable = FALSE, 
 
 #### 
 
-```{r outliers}
+```{r outliers, eval=to_impute}
 reactable(as.data.frame(table(pd$outlier)), pagination = FALSE, sortable = FALSE, columns = list(Var1 = colDef(name = c("Outliers"))))
 ```
 
 ### Custom processing parameters
 
 ```{r parameters}
-HIPCCyto:::DATA[[s$study]]
+custom_params <- HIPCCyto:::DATA[[s$study]]
+if (isFALSE(to_impute)) custom_params$imputed_lymphocyte_gates <- pd$name[as.logical(pd$imputed)]
+custom_params
 ```
 
 
@@ -306,7 +313,7 @@ tagList(
             style = "flex: 50%; padding: 5px;",
             img(src = thisPlotInfo$gates, style = "height: 700px; width: 100%; object-fit: contain"),
             div(
-              style = "display: flex; justify-content: center;",
+              style = paste("display: flex; justify-content: center; visibility:", visible),
               tag("button", list("Correct lymphocyte gate", id = paste0(thisPlotInfo$name, "-correct"), class = "btn btn-default", onclick = "unflag()", style = "background-color: green")),
               tag("button", list("Incorrect lymphocyte gate", id = paste0(thisPlotInfo$name, "-incorrect"), class = "btn btn-default", onclick = "flag()", style = "background-color: red"))
             )
@@ -428,7 +435,7 @@ img(
 Sample metadata
 =====================================
 
-```{r modal}
+```{r modal, eval=to_impute}
 body <- div(
   div(
     span(id = "n-selected", ""),
@@ -451,7 +458,13 @@ bs
 
 ```{r pData}
 data <- SharedData$new(pd)
-reactable(data, selection = "multiple", defaultSelected = which(pd$outlier), pagination = FALSE, onClick = JS("
+if (isTRUE(to_impute)) {
+  selection <- "multiple"
+  defaultSelected <- which(pd$outlier)
+} else {
+  selection <- defaultSelected <- NULL
+}
+reactable(data, selection = selection, defaultSelected = defaultSelected, pagination = FALSE, onClick = JS("
   function(rowInfo, colInfo) {
     console.log(rowInfo);
     i = rowInfo.index;

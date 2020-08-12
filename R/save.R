@@ -428,15 +428,16 @@ save_density_plots_by_marker <- function(gs, marker, output_dir) {
 
 #' @importFrom rmarkdown render
 #' @export
-render_qc_report <- function(gs_dir) {
+render_qc_report <- function(gs_dir, imputed = FALSE) {
   catf(">> Compiling QC report...")
-  file_path <- file.path(gs_dir, "QC.html")
+  file_path <- file.path(gs_dir, ifelse(imputed, "QC_imputed.html", "QC.html"))
 
   catf(sprintf(">> output_file: ", file_path))
   input <- file.path(gs_dir, "QC.Rmd")
   file.copy(system.file("qc/QC.Rmd", package = "HIPCCyto"), input, overwrite = TRUE)
   render(
     input = input,
+    output_file = file_path,
     params = list(gs_dir = gs_dir)
   )
 
