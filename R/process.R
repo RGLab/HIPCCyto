@@ -162,7 +162,8 @@ create_cytoset <- function(filePath, study, debug_dir = NULL) {
 
   cs <- suppressMessages(cqc_load_fcs(
     filePath,
-    num_threads = detect_cores()
+    num_threads = detect_cores(),
+    is_h5 = TRUE
   ))
   channel_check <- cqc_check(cs, "channel")
 
