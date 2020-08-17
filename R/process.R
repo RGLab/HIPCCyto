@@ -199,7 +199,7 @@ create_cytoset <- function(filePath, study, debug_dir = NULL) {
   cs
 }
 
-#' @importFrom flowWorkspace phenoData phenoData<-
+#' @importFrom flowWorkspace phenoData phenoData<- cf_keyword_insert
 merge_metadata <- function(cs, files, study, debug_dir = NULL) {
   catf(">> Merging metedata...")
   phenoData(cs)$study_accession <- files[phenoData(cs)$name, ]$studyAccession
@@ -214,6 +214,13 @@ merge_metadata <- function(cs, files, study, debug_dir = NULL) {
   phenoData(cs)$type <- files[phenoData(cs)$name, ]$biosampleType
   phenoData(cs)$subtype <- files[phenoData(cs)$name, ]$biosampleSubtype
   phenoData(cs)$cohort <- files[phenoData(cs)$name, ]$armName
+
+  ver <- get_version()
+  dr <- get_dr()
+  for (i in seq_along(cs)) {
+    cf_keyword_insert(cs[[i, returnType = "cytoframe"]], "HIPCCyto_version", ver)
+    cf_keyword_insert(cs[[i, returnType = "cytoframe"]], "ImmPort_data_release", dr)
+  }
 
   save_debug(cs, "merge_metadata", debug_dir)
 

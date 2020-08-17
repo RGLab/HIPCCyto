@@ -78,7 +78,8 @@ summarize_gating_set <- function(gs) {
     cohorts = unique(pd$cohort),
     batches = as.list(table(pd$batch)),
     participants = unique(pd$participant_id),
-    version = get_version()
+    version = get_version(),
+    data_release = get_dr()
   )
 }
 

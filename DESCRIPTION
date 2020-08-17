@@ -1,6 +1,6 @@
 Package: HIPCCyto
 Title: HIPC Cytometry
-Version: 0.0.3
+Version: 0.0.4
 Authors@R: c(
     person("Ju Yeong", "Kim", role = c("aut", "cre"), email = "jkim2345@fredhutch.org"),
     person("Jake", "Wagner", role = "aut"))
@@ -13,7 +13,7 @@ Depends:
     flowCore,
     R (>= 4.0.0)
 Imports: 
-    ImmPortR,
+    ImmPortR (>= 0.0.1),
     ncdfFlow,
     flowWorkspace,
     openCyto,
