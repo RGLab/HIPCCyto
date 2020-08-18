@@ -684,6 +684,7 @@ get_markers <- function(study, modify = TRUE) {
 }
 
 #' @importFrom flowWorkspace lapply
+#' @importFrom flowIncubator nearestSamples regateNearestSamples
 impute_gates <- function(gs, gate = "Lymphocytes", outliers = NULL, batch = NULL, method = "consensus", plot = FALSE){
   to_impute <- outliers
   if(is.null(to_impute) || length(to_impute) <= 0)
@@ -715,17 +716,14 @@ impute_gates <- function(gs, gate = "Lymphocytes", outliers = NULL, batch = NULL
     to_impute_idx_batch <- match(to_impute_sn_batch, sampleNames(gs))
     # Get the template gates
     good_gates <- lapply(gs[-to_impute_idx_batch], function(gh){
-      gh_pop_get_gate(gh, "Lymphocytes")
+      gh_pop_get_gate(gh, gate)
     })
     if(length(good_gates) <= 0){
       warning("No template gates remaining in batch to use for imputation.")
       break
     }
     if( is(good_gates[[1]], "ellipsoidGate")){
-      if(method != "consensus"){
-        warning("Only consensus imputation is currently implemented for ellipsoidGates")
-        break
-      }else{
+      if(method == "consensus"){
         # Building consensus ellipse
 
         # Getting consensus center:
@@ -797,7 +795,13 @@ impute_gates <- function(gs, gate = "Lymphocytes", outliers = NULL, batch = NULL
           print(combined + geom_gate(consensus_eg, colour = "blue"))
         }
 
-        gs_pop_set_gate(gs[to_impute_sn_batch], "Lymphocytes", imputed_gates)
+        gs_pop_set_gate(gs[to_impute_sn_batch], gate, imputed_gates)
+      }else if(method == "nearest"){
+        suppressWarnings(res <- nearestSamples(gs, node = gate, failed = to_impute_sn_batch))
+        suppressWarnings(regateNearestSamples(gs, res, gate))
+      }else{
+        warning('Only "consensus" or "nearest" methods are currently implemented for imputing ellipsoidGates')
+        break
       }
     }else{
       warning("Unsupported gate type for imputation.")

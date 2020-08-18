@@ -39,12 +39,16 @@ Imports:
     cytoqc,
     reactable,
     crosstalk,
-    bsplus
+    bsplus,
+    flowIncubator,
+    QUALIFIER
 Suggests:
     usethis
 Remotes:
     RGLab/ImmPortR,
-    RGLab/cytoqc
+    RGLab/cytoqc,
+    RGLab/flowIncubator,
+    RGLab/QUALIFIER
 RoxygenNote: 7.1.1
 URL: https://github.com/RGLab/HIPCCyto
 BugReports: https://github.com/RGLab/HIPCCyto/issues
