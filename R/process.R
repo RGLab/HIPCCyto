@@ -685,7 +685,7 @@ get_markers <- function(study, modify = TRUE) {
 
 #' @importFrom flowWorkspace lapply
 #' @importFrom flowIncubator nearestSamples regateNearestSamples
-impute_gates <- function(gs, gate = "Lymphocytes", outliers = NULL, batch = NULL, method = "consensus", plot = FALSE){
+impute_gates <- function(gs, gate = "Lymphocytes", outliers = NULL, batch = NULL, method = "nearest", plot = FALSE){
   to_impute <- outliers
   if(is.null(to_impute) || length(to_impute) <= 0)
     message("No samples passed to to_impute arg of impute_gate.")
