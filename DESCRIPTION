@@ -37,7 +37,7 @@ Imports:
     diptest,
     SIBER,
     cytoqc,
-    reactable,
+    reactable (>= 0.2.0.9000),
     crosstalk,
     bsplus,
     flowIncubator
@@ -46,7 +46,8 @@ Suggests:
 Remotes:
     RGLab/ImmPortR,
     RGLab/cytoqc,
-    RGLab/flowIncubator
+    RGLab/flowIncubator,
+    glin/reactable
 RoxygenNote: 7.1.1
 URL: https://github.com/RGLab/HIPCCyto
 BugReports: https://github.com/RGLab/HIPCCyto/issues
