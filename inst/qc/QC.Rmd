@@ -144,7 +144,7 @@ gates <- HIPCCyto:::get_nodes(gs)
 
 ```{r live}
 if ("Live" %in% gates) {
-  suppressWarnings(p <- qc_gates(gs, "Live"))
+  suppressWarnings(p <- HIPCCyto:::qc_gates(gs, "Live"))
   ggplotly(p) %>%
     onRender("
       function(el) {
@@ -172,7 +172,7 @@ if ("Live" %in% gates) {
 
 ```{r nondebris}
 if ("Nondebris" %in% gates) {
-  suppressWarnings(p <- qc_gates(gs, "Nondebris"))
+  suppressWarnings(p <- HIPCCyto:::qc_gates(gs, "Nondebris"))
   ggplotly(p) %>%
     onRender("
       function(el) {
@@ -200,7 +200,7 @@ if ("Nondebris" %in% gates) {
 
 ```{r lymphocytes}
 if ("Lymphocytes" %in% gates) {
-suppressWarnings(p <- qc_gates(gs, "Lymphocytes"))
+suppressWarnings(p <- HIPCCyto:::qc_gates(gs, "Lymphocytes"))
 ggplotly(p) %>%
   onRender("
     function(el) {

@@ -65,7 +65,6 @@ create_qc_files <- function(gs, gs_accession, output_dir, full = FALSE) {
 
 # Summarize --------------------------------------------------------------------
 
-#' @export
 summarize_gating_set <- function(gs, gs_accession) {
   pd <- pData(gs)
   list(
@@ -96,10 +95,9 @@ save_gating_set_summary <- function(gs, gs_accession, output_dir) {
   file
 }
 
-# QC ---------------------------------------------------------------------------
 
+# qc gate functions  -----------------------------------------------------------
 #' @importFrom flowWorkspace gh_pop_get_gate gs_pop_get_gate
-#' @export
 qc_gates <- function(gs, gate) {
   gt <- gh_pop_get_gate(gs[[1]], gate)
 
@@ -161,7 +159,6 @@ qc_1d_gates <- function(gs, gate) {
   p
 }
 
-
 #' @importFrom ggplot2 geom_polygon ylim
 qc_polygon_gates <- function(gs, gate) {
   # retrieve gates
@@ -214,10 +211,8 @@ qc_polygon_gates <- function(gs, gate) {
 }
 
 
-# Plots ------------------------------------------------------------------------
-
+# plot generating functions ----------------------------------------------------
 #' @importFrom ggplot2 xlab ylab geom_path
-#' @export
 plot_marker <- function(gs, marker) {
   cs <- gs_pop_get_data(gs, get_parent(gs))
   pd <- pData(gs)
@@ -321,8 +316,7 @@ plot_density <- function(gh, channel) {
 }
 
 
-# Save -------------------------------------------------------------------------
-
+# qc file saving functions -----------------------------------------------------
 #' @importFrom gtools mixedorder
 #' @importFrom pheatmap pheatmap
 save_spillover_heatmaps <- function(gs, output_dir) {
@@ -427,10 +421,8 @@ save_density_plots_by_marker <- function(gs, marker, output_dir) {
 }
 
 
-# Report -----------------------------------------------------------------------
-
+# report rendering functions ---------------------------------------------------
 #' @importFrom rmarkdown render
-#' @export
 render_qc_report <- function(gs_dir, imputed = FALSE) {
   catf(">> Compiling QC report...")
   file_path <- file.path(gs_dir, ifelse(imputed, "QC_imputed.html", "QC.html"))
@@ -464,8 +456,7 @@ render_study_report <- function(study_dir, study, version = get_version()) {
 }
 
 
-# Outliers ---------------------------------------------------------------------
-
+# outlier detection functions --------------------------------------------------
 find_outliers <- function(gs, byBatch = TRUE, cl = 0.99, step = 3) {
   batch <- unique(pData(gs)$batch)
 
@@ -533,24 +524,4 @@ test_outliers <- function(gs, cl = 0.99, step = 3) {
   }
 
   outliers
-}
-
-# Helpers ----------------------------------------------------------------------
-
-get_spillover <- function(x) {
-  spills <- spillover(x)
-  spills[!sapply(spills, is.null)][[1]]
-}
-
-get_marker_channel <- function(gs) {
-  markers <- markernames(gs)
-  gsub("/", "_", paste0(markers, "_", names(markers)))
-}
-
-get_nodes <- function(gs) {
-  gs_get_pop_paths(gs, path = 1)[-1]
-}
-
-get_version <- function() {
-  paste0("v", packageVersion("HIPCCyto"))
 }
