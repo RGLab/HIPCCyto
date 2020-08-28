@@ -8,8 +8,9 @@ save_gating_sets <- function(gsl, output_dir, qc = TRUE) {
   gsl_path <- lapply(seq_len(length(gsl)), function(i) {
     catf(sprintf(">> Saving gating set #%s...", i))
     gs <- gsl[[i]]
+    gs_accession <- paste0("gs", i)
 
-    path <- file.path(output_dir, paste0("gs", i))
+    path <- file.path(output_dir, gs_accession)
     gs_path <- file.path(path, "gs")
     if (dir.exists(gs_path)) {
       unlink(gs_path, recursive = TRUE)
@@ -20,7 +21,7 @@ save_gating_sets <- function(gsl, output_dir, qc = TRUE) {
     save_gs(gs, gs_path, overwrite = TRUE, cdf = "copy")
 
     if (isTRUE(qc)) {
-      try(create_qc_files(gs, path))
+      try(create_qc_files(gs, gs_accession, path))
       try(render_qc_report(path))
     }
 
@@ -34,10 +35,10 @@ save_gating_sets <- function(gsl, output_dir, qc = TRUE) {
   gsl_path
 }
 
-create_qc_files <- function(gs, output_dir, full = FALSE) {
+create_qc_files <- function(gs, gs_accession, output_dir, full = FALSE) {
   catf(">> Creating QC summary and plots...")
 
-  save_gating_set_summary(gs, output_dir)
+  save_gating_set_summary(gs, gs_accession, output_dir)
   save_spillover_heatmaps(gs, output_dir)
   save_gate_plots(gs, output_dir)
   save_marker_plots(gs, output_dir)
@@ -65,10 +66,11 @@ create_qc_files <- function(gs, output_dir, full = FALSE) {
 # Summarize --------------------------------------------------------------------
 
 #' @export
-summarize_gating_set <- function(gs) {
+summarize_gating_set <- function(gs, gs_accession) {
   pd <- pData(gs)
   list(
-    study = unique(pd$study_accession),
+    study_accession = unique(pd$study_accession),
+    gs_accession = gs_accession,
     number_of_samples = length(gs),
     number_of_markers = length(markernames(gs)),
     markers = mixedsort(markernames(gs)),
@@ -83,10 +85,10 @@ summarize_gating_set <- function(gs) {
   )
 }
 
-save_gating_set_summary <- function(gs, output_dir) {
+save_gating_set_summary <- function(gs, gs_accession, output_dir) {
   catf(">> Saving gating set summary...")
 
-  summary <- summarize_gating_set(gs)
+  summary <- summarize_gating_set(gs, gs_accession)
   json <- toJSON(summary, pretty = TRUE, auto_unbox = TRUE)
   file <- sprintf("%s/summary", output_dir)
   cat(json, file = file)

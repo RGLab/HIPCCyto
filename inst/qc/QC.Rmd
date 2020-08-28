@@ -34,11 +34,11 @@ if (isTRUE(to_impute)) {
   pData(gs) <- pd
   visible <- "visible"
 }
-s <- summarize_gating_set(gs)
+s <- jsonlite::fromJSON(file.path(params$gs_dir, "summary"))
 ```
 
 ---
-title: `r s$study`
+title: `r paste(s$study_accession, s$gs_accession)`
 ---
 
 Summary
@@ -52,6 +52,8 @@ Column
 ```{r summary}
 reactable(
   data.frame(
+    "HIPCCyto version" = s$version,
+    "ImmPort Data Release" = s$data_release,
     "Number of Samples" = length(gs),
     "Number of Markers" = length(markernames(gs)),
     "Number of Participants" = length(unique(pd$participant_id)),
