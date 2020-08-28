@@ -492,19 +492,23 @@ test_outliers <- function(gs, cl = 0.99, step = 3) {
   outliers <- names(which(pv < (1 - cl[1])))
   catf(">> step #1: dip test")
   catf(outliers)
-  if (step == 1) return(outliers)
+  if (step == 1) {
+    return(outliers)
+  }
 
-  if(sum(!sampleNames(gs) %in% outliers) > 5){
+  if (sum(!sampleNames(gs) %in% outliers) > 5) {
     # step 2: location test
     gates <- gs_pop_get_gate(gs[!sampleNames(gs) %in% outliers], "Lymphocytes")
-    mat <- t(sapply(gates, function(x) c(
-      ux = unname(x@mean[1]),
-      uy = unname(x@mean[2]),
-      sx = x@cov[1, 1],
-      sy = x@cov[2, 2],
-      sxy = x@cov[1, 2],
-      det = abs(det(x@cov))
-    )))
+    mat <- t(sapply(gates, function(x) {
+      c(
+        ux = unname(x@mean[1]),
+        uy = unname(x@mean[2]),
+        sx = x@cov[1, 1],
+        sy = x@cov[2, 2],
+        sxy = x@cov[1, 2],
+        det = abs(det(x@cov))
+      )
+    }))
 
     mu <- colMeans(mat[, 1:2])
     sigma <- cov(mat[, 1:2])
@@ -513,7 +517,9 @@ test_outliers <- function(gs, cl = 0.99, step = 3) {
     catf(">> step #2: location test")
     catf(names(which(!inside)))
     outliers <- c(outliers, names(which(!inside)))
-    if (step == 2) return(outliers)
+    if (step == 2) {
+      return(outliers)
+    }
 
     # step 3: size test
     size <- mat[inside, "det"]
@@ -522,7 +528,7 @@ test_outliers <- function(gs, cl = 0.99, step = 3) {
     catf(">> step #3: size test")
     catf(names(which(!inside)))
     outliers <- c(outliers, names(which(!inside)))
-  }else{
+  } else {
     catf(">> insufficient samples for steps #2 and #3")
   }
 

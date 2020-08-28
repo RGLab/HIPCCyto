@@ -168,24 +168,26 @@ create_cytoset <- function(filePath, study, debug_dir = NULL) {
   channel_check <- cqc_check(cs, "channel")
 
   # Check if inconsistent
-  if(length(unique(channel_check$group_id)) > 1){
+  if (length(unique(channel_check$group_id)) > 1) {
     # base::ifelse is not type-safe. use with caution
     max.distance <- study_info$max.distance
-    if(is.null(max.distance))
+    if (is.null(max.distance)) {
       # By default, no fuzzy match
       max.distance <- 0.0
+    }
     channel_ref <- study_info$channel_ref
-    if(is.null(channel_ref))
+    if (is.null(channel_ref)) {
       # By default, use the panel with the greatest consensus
       channel_ref <- colnames(cs[[as.data.frame(channel_check)[which.max(channel_check$nObject), "object"]]])
+    }
 
     # First try automatic match
     channel_match <- cqc_match(channel_check, ref = channel_ref, max.distance = max.distance)
 
     # Allow manual updating to override automatic match
-    if(!is.null(map)){
+    if (!is.null(map)) {
       # Remove any existing match
-      tryCatch(channel_match <- cqc_match_remove(channel_match, map$channels), error = function(e){})
+      tryCatch(channel_match <- cqc_match_remove(channel_match, map$channels), error = function(e) {})
       update_ref <- map$alias
       names(update_ref) <- map$channels
       channel_match <- cqc_match_update(channel_match, map = update_ref)
@@ -485,9 +487,9 @@ compute_targets <- function(gs, flowClusters, study) {
 }
 
 create_fcEllipsoidGate <- function(flowClusters, targets) {
-  quantile =  0.9
-  trans = 0
-  prior = list(NA)
+  quantile <- 0.9
+  trans <- 0
+  prior <- list(NA)
 
   gates <- lapply(names(flowClusters), function(sample) {
     tmix_results <- flowClusters[[sample]]
@@ -685,49 +687,52 @@ get_markers <- function(study, modify = TRUE) {
 
 #' @importFrom flowWorkspace lapply
 #' @importFrom flowIncubator nearestSamples regateNearestSamples
-impute_gates <- function(gs, gate = "Lymphocytes", outliers = NULL, batch = NULL, method = "nearest", plot = FALSE){
+impute_gates <- function(gs, gate = "Lymphocytes", outliers = NULL, batch = NULL, method = "nearest", plot = FALSE) {
   to_impute <- outliers
-  if(is.null(to_impute) || length(to_impute) <= 0)
+  if (is.null(to_impute) || length(to_impute) <= 0) {
     message("No samples passed to to_impute arg of impute_gate.")
-  else if(is.numeric(to_impute)){
+  } else if (is.numeric(to_impute)) {
     to_impute_idx <- to_impute
     to_impute_sn <- sampleNames(gs[to_impute])
-  }else{
+  } else {
     to_impute_sn <- intersect(to_impute, sampleNames(gs))
-    if(length(to_impute_sn) != length(to_impute))
+    if (length(to_impute_sn) != length(to_impute)) {
       warning("Some sample names passed to to_impute arg of inpute_gate do not match GatingSet")
+    }
     to_impute_idx <- match(to_impute_sn, sampleNames(gs))
   }
 
   # For flexibility of imputation level
-  if(isTRUE(batch))
+  if (isTRUE(batch)) {
     batch <- "batch"
-  else if(isFALSE(batch))
+  } else if (isFALSE(batch)) {
     batch <- NULL
+  }
 
-  if(is.null(batch))
+  if (is.null(batch)) {
     batch_groups <- list(pData(gs))
-  else
+  } else {
     batch_groups <- split(pData(gs), pData(gs)$batch)
+  }
 
-  for(idx in seq_along(batch_groups)){
+  for (idx in seq_along(batch_groups)) {
     batch_pd <- batch_groups[[idx]]
     to_impute_sn_batch <- to_impute_sn[to_impute_sn %in% rownames(batch_pd)]
     to_impute_idx_batch <- match(to_impute_sn_batch, sampleNames(gs))
     # Get the template gates
-    good_gates <- lapply(gs[-to_impute_idx_batch], function(gh){
+    good_gates <- lapply(gs[-to_impute_idx_batch], function(gh) {
       gh_pop_get_gate(gh, gate)
     })
-    if(length(good_gates) <= 0){
+    if (length(good_gates) <= 0) {
       warning("No template gates remaining in batch to use for imputation.")
       break
     }
-    if( is(good_gates[[1]], "ellipsoidGate")){
-      if(method == "consensus"){
+    if (is(good_gates[[1]], "ellipsoidGate")) {
+      if (method == "consensus") {
         # Building consensus ellipse
 
         # Getting consensus center:
-        good_centers <- do.call(rbind, lapply(good_gates, function(gate){
+        good_centers <- do.call(rbind, lapply(good_gates, function(gate) {
           gate@mean
         }))
         consensus_location <- colMeans(good_centers)
@@ -736,10 +741,10 @@ impute_gates <- function(gs, gate = "Lymphocytes", outliers = NULL, batch = NULL
         consensus_distance <- mean(sapply(good_gates, function(gate) gate@distance))
 
         # Getting consensus shape (covariance matrix):
-        good_eigs <- lapply(good_gates, function(gate){
+        good_eigs <- lapply(good_gates, function(gate) {
           eigen(gate@cov)
         })
-        good_eigVals <- do.call(rbind, lapply(good_eigs, function(this_eigs){
+        good_eigVals <- do.call(rbind, lapply(good_eigs, function(this_eigs) {
           this_eigs$values
         }))
         good_radii <- sqrt(good_eigVals)
@@ -747,8 +752,8 @@ impute_gates <- function(gs, gate = "Lymphocytes", outliers = NULL, batch = NULL
         consensus_eigVals <- consensus_radii^2
 
         # Get consensus principal eigenvector as vector sum
-        consensus_eigVec1 <- colMeans(do.call(rbind, lapply(good_eigs, function(this_eigs){
-          this_eigs$vectors[,1]
+        consensus_eigVec1 <- colMeans(do.call(rbind, lapply(good_eigs, function(this_eigs) {
+          this_eigs$vectors[, 1]
         })))
 
         # Just get the second consensus eigenvector from the normal to the first
@@ -764,20 +769,20 @@ impute_gates <- function(gs, gate = "Lymphocytes", outliers = NULL, batch = NULL
         rownames(consensus_cov) <- colnames(consensus_cov) <- names(consensus_location)
 
         # Wrapping it together in consensus ellipsoidGate object:
-        consensus_eg <- ellipsoidGate(gate=consensus_cov, mean=consensus_location, distance = consensus_distance, filterId="consensus_ellipsoidGate")
+        consensus_eg <- ellipsoidGate(gate = consensus_cov, mean = consensus_location, distance = consensus_distance, filterId = "consensus_ellipsoidGate")
         imputed_gates <- lapply(seq_along(to_impute_sn_batch), function(dummy) consensus_eg)
         names(imputed_gates) <- to_impute_sn_batch
 
-        if(plot){
+        if (plot) {
           # Currently ggcyto does not directly support gate-only plots without data
           # So this hacky workaround is necessary
-          dummy <- matrix(as.numeric(c(0,0)), nrow = 1, ncol = 2)
+          dummy <- matrix(as.numeric(c(0, 0)), nrow = 1, ncol = 2)
           gate_dims <- colnames(consensus_eg@cov)
           colnames(dummy) <- gate_dims
           fr <- flowFrame(dummy)
 
           # Scale the window to fit all gates
-          max_bounds <- lapply(good_gates, function(gate){
+          max_bounds <- lapply(good_gates, function(gate) {
             pg <- as(gate, "polygonGate")
             maxima <- apply(pg@boundaries, 2, max)
           })
@@ -785,7 +790,7 @@ impute_gates <- function(gs, gate = "Lymphocytes", outliers = NULL, batch = NULL
 
           # Blank canvas
           combined <- ggcyto(fr, aes_(gate_dims[[1]], gate_dims[[2]])) +
-            ggcyto_par_set(limits=list(x=c(0,max_bounds[[1]]), y=c(0,max_bounds[[2]])))
+            ggcyto_par_set(limits = list(x = c(0, max_bounds[[1]]), y = c(0, max_bounds[[2]])))
 
           # Add all the good template gates
           good_gate_geoms <- lapply((good_gates), geom_gate)
@@ -796,14 +801,14 @@ impute_gates <- function(gs, gate = "Lymphocytes", outliers = NULL, batch = NULL
         }
 
         gs_pop_set_gate(gs[to_impute_sn_batch], gate, imputed_gates)
-      }else if(method == "nearest"){
+      } else if (method == "nearest") {
         suppressWarnings(res <- nearestSamples(gs, node = gate, failed = to_impute_sn_batch))
         suppressWarnings(regateNearestSamples(gs, res, gate))
-      }else{
+      } else {
         warning('Only "consensus" or "nearest" methods are currently implemented for imputing ellipsoidGates')
         break
       }
-    }else{
+    } else {
       warning("Unsupported gate type for imputation.")
     }
   }

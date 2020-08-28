@@ -1,19 +1,23 @@
 #' @importFrom flowWorkspace load_gs gs_pop_remove gs_pop_add
-apply_lymphocyte_gate_custom <- function(gs, debug_dir= NULL, flowClusters = NULL, nclust = NULL, target = c(40000,5000)) {
-  if (is.character(gs))
+apply_lymphocyte_gate_custom <- function(gs, debug_dir = NULL, flowClusters = NULL, nclust = NULL, target = c(40000, 5000)) {
+  if (is.character(gs)) {
     gs <- load_gs(gs)
+  }
   if (is.character(flowClusters)) {
-    flowClusters = readRDS(flowClusters)
+    flowClusters <- readRDS(flowClusters)
     # to check match
     sample_match <- sampleNames(gs) %in% names(flowClusters)
-    if (!all(sample_match))
+    if (!all(sample_match)) {
       stop("Precomputed flowClusters and GatingSet don't match!")
+    }
   }
-  if (is.null(flowClusters))
-    if (is.null(nclust))
+  if (is.null(flowClusters)) {
+    if (is.null(nclust)) {
       flowClusters <- compute_flowClusters(gs, debug_dir)
-    else
+    } else {
       flowClusters <- compute_flowClusters_custom(gs, debug_dir, nclust)
+    }
+  }
 
   # Should really keep these in a separate tabulated data structure
   # SDY301: c(40000,5000)
@@ -25,8 +29,9 @@ apply_lymphocyte_gate_custom <- function(gs, debug_dir= NULL, flowClusters = NUL
   catf(">> Applying lymphocytes gate with flowClust by forward and side scatters (Lymphocytes)...")
 
   # Pull off any old/wrong Lymphocyte gate
-  if (any(grepl("Lymphocytes", gs_get_pop_paths(gs))))
+  if (any(grepl("Lymphocytes", gs_get_pop_paths(gs)))) {
     gs_pop_remove(gs, "Lymphocytes")
+  }
 
   gs_pop_add(gs, gates, name = "Lymphocytes", parent = get_parent(gs), recompute = TRUE)
 
@@ -34,13 +39,16 @@ apply_lymphocyte_gate_custom <- function(gs, debug_dir= NULL, flowClusters = NUL
 }
 
 #' @importFrom openCyto gate_mindensity2
-apply_dump_gate_custom <- function(gs, plot=FALSE, gate_range = c(1.8,2.8)) {
-  if (is.character(gs))
+apply_dump_gate_custom <- function(gs, plot = FALSE, gate_range = c(1.8, 2.8)) {
+  if (is.character(gs)) {
     gs <- load_gs(gs)
-  if (any(grepl("Lymphocytes", gs_get_pop_paths(gs))))
+  }
+  if (any(grepl("Lymphocytes", gs_get_pop_paths(gs)))) {
     gs_pop_remove(gs, "Lymphocytes")
-  if (any(grepl("Dump", gs_get_pop_paths(gs))))
+  }
+  if (any(grepl("Dump", gs_get_pop_paths(gs)))) {
     gs_pop_remove(gs, "Dump")
+  }
   gates <- lapply(sampleNames(gs), function(sn) {
     gate_mindensity2(
       fr = gh_pop_get_data(gs[[sn]], "SCSSC"),
