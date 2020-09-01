@@ -182,7 +182,7 @@ create_cytoset <- function(filePath, study, debug_dir = NULL) {
     missing_channels <- do.call(c, lapply(channel_match$match_result, function(group) {group$missing}))
     if(length(missing_channels) > 0){
       # Drop those extra channels from the reference
-      channel_ref <- channel_ref[!channel_ref %in% missing_channels]
+      channel_ref <- channel_match$ref[!channel_match$ref %in% missing_channels]
       # And re-run the match (now the suggested fix will delete them)
       channel_match <- custom_match_cytoset(channel_check, max.distance, channel_ref, map)
     }
