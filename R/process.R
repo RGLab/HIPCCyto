@@ -201,6 +201,7 @@ create_cytoset <- function(filePath, study, debug_dir = NULL) {
 # 2) Automatic match with optional fuzziness by max.distance
 # 3) Manual updates to override automatic match using map
 custom_match_cytoset <- function(check_result, max.distance, channel_ref, map){
+  cs <- attr(check_result, "data")
   # 1) If not specified, use the panel with the greatest consensus (most abundant group in check)
   if (is.null(channel_ref))
     channel_ref <- colnames(cs[[as.data.frame(channel_check)[which.max(channel_check$nObject), "object"]]])
