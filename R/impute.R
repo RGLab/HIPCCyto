@@ -65,7 +65,7 @@ impute_gates <- function(gs_dir, samples_to_impute, by_batch = TRUE, method = "n
   # re-save gating set and QC files
   catf(">> Saving new gates and creating new QC files...")
   save_gs(gs, path = file.path(gs_dir, "gs"))
-  save_marker_plots(gs, gs_dir)
+  render_comparison_report(gs_dir)
   render_qc_report(gs_dir)
 
   gs
@@ -154,4 +154,21 @@ recover_original_gates <- function(gs_dir) {
   file.copy(file.path(gs_dir, "QC_original.html"), file.path(gs_dir, "QC.html"))
 
   gs
+}
+
+#' @importFrom rmarkdown render
+render_comparison_report <- function(gs_dir) {
+  catf(">> Compiling gate comparison report...")
+  file_path <- file.path(gs_dir, "comparison.html")
+
+  catf(sprintf(">> output_file: ", file_path))
+  input <- file.path(gs_dir, "comparison.Rmd")
+  file.copy(system.file("qc/comparison.Rmd", package = "HIPCCyto"), input, overwrite = TRUE)
+  render(
+    input = input,
+    output_file = file_path,
+    params = list(gs_dir = gs_dir)
+  )
+
+  file_path
 }

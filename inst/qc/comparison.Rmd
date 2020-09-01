@@ -1,0 +1,46 @@
+---
+title: "Original vs Imputed Gates"
+output: html_document
+params:
+  gs_dir: ""
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+```
+
+```{r libraries, include=FALSE}
+library(flowWorkspace)
+library(ggcyto)
+```
+
+```{r load, include=FALSE}
+gs_dir <- params$gs_dir
+gate <- "Lymphocytes"
+gs <- load_gs(file.path(gs_dir, "gs"))
+original_gates <- readRDS(file.path(gs_dir, sprintf("%s_original.RDS", gate)))
+
+parent_gate <- basename(gs_pop_get_parent(gs, gate))
+pd <- pData(gs)
+imputed <- pd$name[pd$imputed == "TRUE"]
+
+imputed_gs <- gs[imputed]
+imputed_gates <- gs_pop_get_gate(imputed_gs, gate)
+original_gates <- original_gates[imputed]
+```
+
+The **<span style="color: red;">red</span>** gates are the original gates, and the **black** gates are the imputed gates.
+
+```{r plot}
+plots <- lapply(imputed_gs, function(gh) {
+  print(sampleNames(gh))
+  cf <- gh_pop_get_data(gh, parent_gate)
+  p <- ggcyto(cf, aes(x = "FSC-A", y = "SSC-A")) +
+    geom_hex() +
+    geom_gate(original_gates, colour = "red", size = 1) +
+    geom_gate(imputed_gates, colour = "black", size = 1)
+  print(p)
+})
+```
