@@ -159,13 +159,12 @@ qc_1d_gates <- function(gs, gate) {
   p
 }
 
-#' @importFrom ggplot2 geom_polygon ylim
+#' @importFrom ggplot2 geom_polygon ylim theme
 qc_polygon_gates <- function(gs, gate) {
   # retrieve gates
   gates <- gs_pop_get_gate(gs, gate)
   batch <- pData(gs)$batch
   outlier <- pData(gs)$outlier
-  if (is.null(outlier)) outlier <- rep(TRUE, length(gates))
 
   # build data
   tmp <- lapply(seq_along(gates), function(i) {
@@ -182,7 +181,11 @@ qc_polygon_gates <- function(gs, gate) {
       check.names = FALSE,
       stringsAsFactors = FALSE
     )
-    df$outlier <- outlier[i]
+    if (is.null(outlier)) {
+      df$outlier <- FALSE
+    } else {
+      df$outlier <- outlier[i]
+    }
     if (!is.null(batch)) {
       df$batch <- batch[i]
     }
@@ -200,6 +203,10 @@ qc_polygon_gates <- function(gs, gate) {
     xlim(0, xmax) +
     ylim(0, ymax) +
     labs(title = title)
+
+  if (is.null(outlier)) {
+    p <- p  + theme(legend.position = "none")
+  }
 
   if (!is.null(batch)) {
     p <- p +
@@ -423,9 +430,9 @@ save_density_plots_by_marker <- function(gs, marker, output_dir) {
 
 # report rendering functions ---------------------------------------------------
 #' @importFrom rmarkdown render
-render_qc_report <- function(gs_dir, imputed = FALSE) {
+render_qc_report <- function(gs_dir) {
   catf(">> Compiling QC report...")
-  file_path <- file.path(gs_dir, ifelse(imputed, "QC_imputed.html", "QC.html"))
+  file_path <- file.path(gs_dir, "QC.html")
 
   catf(sprintf(">> output_file: ", file_path))
   input <- file.path(gs_dir, "QC.Rmd")

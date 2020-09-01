@@ -485,7 +485,7 @@ function create_code() {
   var ct_sel = new crosstalk.SelectionHandle(Object.keys(__crosstalk_groups)[1]);
   var code = "";
   if (ct_sel.value.length > 0) {
-    code = "impute_gates(gs, outliers = c(\n  '" + ct_sel.value.join("',\n  '") + "'\n))";
+    code = "gs = HIPCCyto:::impute_gates(\n  gs_dir = '`r gs_dir`',\n  samples_to_impute = c(\n    '" + ct_sel.value.join("',\n    '") + "'\n  )\n)";
     
   }
   document.getElementById("impute").innerHTML = code;
