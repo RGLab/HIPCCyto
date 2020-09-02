@@ -204,13 +204,13 @@ custom_match_cytoset <- function(check_result, max.distance, channel_ref, map){
   cs <- attr(check_result, "data")
   # 1) If not specified, use the panel with the greatest consensus (most abundant group in check)
   if (is.null(channel_ref))
-    channel_ref <- colnames(cs[[as.data.frame(channel_check)[which.max(channel_check$nObject), "object"]]])
+    channel_ref <- colnames(cs[[as.data.frame(check_result)[which.max(check_result$nObject), "object"]]])
 
   # If not specified, no fuzzy match
   if (is.null(max.distance))
     max.distance <- 0.0
   # 2) First try automatic match
-  channel_match <- cqc_match(channel_check, ref = channel_ref, max.distance = max.distance)
+  channel_match <- cqc_match(check_result, ref = channel_ref, max.distance = max.distance)
 
   # 3) Allow manual updating to override automatic match
   if (!is.null(map)) {
