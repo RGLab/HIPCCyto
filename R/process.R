@@ -158,8 +158,6 @@ process_panel <- function(files, debug_dir = NULL) {
 #' @importFrom cytoqc cqc_load_fcs cqc_check cqc_match cqc_match_update cqc_match_remove cqc_fix
 create_cytoset <- function(filePath, study, debug_dir = NULL) {
   catf(">> Reading files and creating a cytoset...")
-  study_info <- DATA[[study]]
-  map <- study_info$map
 
   cs <- suppressMessages(cqc_load_fcs(
     filePath,
@@ -170,29 +168,25 @@ create_cytoset <- function(filePath, study, debug_dir = NULL) {
 
   # Check if inconsistent
   if (length(unique(channel_check$group_id)) > 1) {
-    # base::ifelse is not type-safe. use with caution
+    # Get custom control of channel reference, re-mapping, and fuzzy-matching control from study info in DATA
+    study_info <- DATA[[study]]
     max.distance <- study_info$max.distance
-    if (is.null(max.distance)) {
-      # By default, no fuzzy match
-      max.distance <- 0.0
-    }
     channel_ref <- study_info$channel_ref
-    if (is.null(channel_ref)) {
-      # By default, use the panel with the greatest consensus
-      channel_ref <- colnames(cs[[as.data.frame(channel_check)[which.max(channel_check$nObject), "object"]]])
+    map <- study_info$map
+
+    channel_match <- custom_match_cytoset(channel_check, max.distance, channel_ref, map)
+
+    # We need to handle possibility of extra channels in reference. By design, cytoqc will not automatically delete these
+    # but instead will just throw a warning. For our purposes, if there are extra channels in the reference (e.g. Time, extra scatter channels),
+    # we can explicitly delete them to ensure consistency for the resulting cytoset
+    missing_channels <- do.call(c, lapply(channel_match$match_result, function(group) {group$missing}))
+    if(length(missing_channels) > 0){
+      # Drop those extra channels from the reference
+      channel_ref <- channel_match$ref[!channel_match$ref %in% missing_channels]
+      # And re-run the match (now the suggested fix will delete them)
+      channel_match <- custom_match_cytoset(channel_check, max.distance, channel_ref, map)
     }
 
-    # First try automatic match
-    channel_match <- cqc_match(channel_check, ref = channel_ref, max.distance = max.distance)
-
-    # Allow manual updating to override automatic match
-    if (!is.null(map)) {
-      # Remove any existing match
-      tryCatch(channel_match <- cqc_match_remove(channel_match, map$channels), error = function(e) {})
-      update_ref <- map$alias
-      names(update_ref) <- map$channels
-      channel_match <- cqc_match_update(channel_match, map = update_ref)
-    }
     cqc_fix(channel_match)
   }
   # cs with consistent channels
@@ -200,6 +194,33 @@ create_cytoset <- function(filePath, study, debug_dir = NULL) {
   save_debug(cs, "create_cs", debug_dir)
 
   cs
+}
+
+# A simple wrapper to handle the HIPCCyto matching logic of:
+# 1) Specification of reference channels manually or automatically by most abundant group in check
+# 2) Automatic match with optional fuzziness by max.distance
+# 3) Manual updates to override automatic match using map
+custom_match_cytoset <- function(check_result, max.distance, channel_ref, map){
+  cs <- attr(check_result, "data")
+  # 1) If not specified, use the panel with the greatest consensus (most abundant group in check)
+  if (is.null(channel_ref))
+    channel_ref <- colnames(cs[[as.data.frame(check_result)[which.max(check_result$nObject), "object"]]])
+
+  # If not specified, no fuzzy match
+  if (is.null(max.distance))
+    max.distance <- 0.0
+  # 2) First try automatic match
+  channel_match <- cqc_match(check_result, ref = channel_ref, max.distance = max.distance)
+
+  # 3) Allow manual updating to override automatic match
+  if (!is.null(map)) {
+    # Remove any existing match
+    tryCatch(channel_match <- cqc_match_remove(channel_match, map$channels), error = function(e) {})
+    update_ref <- map$alias
+    names(update_ref) <- map$channels
+    channel_match <- cqc_match_update(channel_match, map = update_ref)
+  }
+  channel_match
 }
 
 #' @importFrom flowWorkspace phenoData phenoData<- cf_keyword_insert
