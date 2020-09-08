@@ -41,7 +41,7 @@ apply_singlet_gate <- function(gs, channel) {
 }
 
 #' @importFrom flowWorkspace recompute
-apply_nondebris_gate <- function(gs) {
+apply_nondebris_gate <- function(gs, study) {
   catf(">> Applying non-debris gate by forward scatter (Nondebris)...")
 
   gates <- lapply(sampleNames(gs), function(x) {
@@ -64,6 +64,25 @@ apply_nondebris_gate <- function(gs) {
     parent = get_parent(gs)
   )
   recompute(gs, get_parent(gs))
+
+  # Quick check for gates clipping large numbers of actual cells (usually because no debris peak)
+  parent <- gs_pop_get_parent(gs, "Nondebris")
+  ratios <- lapply(gs, function(gh){
+    gh_pop_get_stats(gh, "Nondebris")$count / gh_pop_get_stats(gh, parent)$count
+  })
+  ratios <- do.call(c, ratios)
+  ratio_cutoff <- DATA[[study]]$Nondebris_ratio_cutoff
+  if(is.null(ratio_cutoff))
+    ratio_cutoff <- 0.92
+  bad_nondebris <- names(ratios[ratios < ratio_cutoff])
+  if(length(bad_nondebris) > 0){
+    dummy_gate <- rectangleGate("FSC-A" = c(-Inf, Inf))
+    # Give those samples fully-permissive gates
+    for(name in bad_nondebris){
+      gh_pop_set_gate(gs[[name]], "Nondebris", dummy_gate)
+    }
+    recompute(gs, parent)
+  }
 }
 
 apply_live_gate <- function(gs, study) {

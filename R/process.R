@@ -364,7 +364,7 @@ gate_gs <- function(gs, study, debug_dir = NULL) {
     print(system.time(apply_singlet_gate(gs, "FSC")))
     print(system.time(apply_singlet_gate(gs, "SSC")))
     print(system.time(apply_live_gate(gs, study)))
-    print(system.time(apply_nondebris_gate(gs)))
+    print(system.time(apply_nondebris_gate(gs, study)))
     print(system.time(apply_lymphocyte_gate(gs, study, debug_dir)))
   }
 
