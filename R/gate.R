@@ -71,7 +71,7 @@ apply_nondebris_gate <- function(gs, study) {
   names(ratios) <- sampleNames(gs)
   ratio_cutoff <- DATA[[study]]$Nondebris_ratio_cutoff
   if(is.null(ratio_cutoff))
-    ratio_cutoff <- 0.92
+    ratio_cutoff <- 0.0
   bad_nondebris <- names(ratios[ratios < ratio_cutoff])
   if(length(bad_nondebris) > 0){
     dummy_gate <- rectangleGate("FSC-A" = c(-Inf, Inf))
