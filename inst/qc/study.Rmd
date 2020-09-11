@@ -42,22 +42,22 @@ title: `r study`
 
 
 
-Panels
+Markers
 =====================================  
 
-```{r panels}
+```{r markers}
 markers <- lapply(summaries, function(x) if(is.null(x)) NA else x[["markers"]])
 m <- gtools::mixedsort(unique(unlist(markers)))
-panels <- matrix(0L, nrow = length(markers), ncol = length(m), dimnames = list(names(markers), m))
+mat <- matrix(0L, nrow = length(markers), ncol = length(m), dimnames = list(names(markers), m))
 for (gs in names(markers)) {
   ms <- markers[[gs]]
   if (length(ms) > 0) {
-    panels[gs, ms] <- 1L
+    mat[gs, ms] <- 1L
   }
 }
 
 pfile <- tempfile(fileext = ".png")
-pheatmap::pheatmap(panels, cluster_rows = FALSE, cluster_cols = FALSE, color = c("lightgrey", "darkblue"), legend_breaks = c(FALSE, TRUE), legend_labels = c("Marker absent", "Marker present"), filename = pfile, breaks = c(0, 0.5, 1))
+pheatmap::pheatmap(mat, cluster_rows = FALSE, cluster_cols = FALSE, color = c("lightgrey", "darkblue"), legend_breaks = c(FALSE, TRUE), legend_labels = c("Marker absent", "Marker present"), filename = pfile, breaks = c(0, 0.5, 1))
 htmltools::img(
   src = rmarkdown:::base64_encode_file(pfile, base64enc::base64encode),
   style = "height: 100%; width: 100%; object-fit: contain"
@@ -92,24 +92,6 @@ Session info
 ```{r session-info}
 sessionInfo()
 ```
-
-
-
-Help
-===================================== 
-
-Column {.tabset}
--------------------------------------
-
-### Panels
-
-### Gating sets
-
-### Study info
-
-### Session info
-
-### Help
 
 
 
