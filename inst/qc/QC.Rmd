@@ -108,7 +108,12 @@ reactable(as.data.frame(table(pd$cohort)), pagination = FALSE, sortable = FALSE,
 #### 
 
 ```{r batches}
-reactable(as.data.frame(table(pd$batch)), pagination = FALSE, sortable = FALSE, columns = list(Var1 = colDef(name = c("Batch"))))
+if (is.null(pd$batch)) {
+  tbl <- data.frame(Var1 = "", Freq = nrow(pd))
+} else {
+  tbl <- as.data.frame(table(pd$batch))
+}
+reactable(tbl, pagination = FALSE, sortable = FALSE, columns = list(Var1 = colDef(name = c("Batch"))))
 ```
 
 #### 
@@ -512,28 +517,6 @@ Session info
 ```{r session-info}
 sessionInfo()
 ```
-
-
-
-Help
-===================================== 
-
-Column {.tabset}
--------------------------------------
-
-### Summary
-
-### Gating
-
-### By sample
-
-### Marker expression
-
-### Sample metadata
-
-### Session info
-
-### Help
 
 
 

@@ -125,6 +125,9 @@ qc_1d_gates <- function(gs, gate) {
   gates <- gs_pop_get_gate(gs, gate)
   channel <- names(gates[[1]]@min)[1]
   batch <- pData(gs)$batch
+  if (is.null(batch)) {
+    batch <- NA
+  }
 
   # build data
   mins <- sapply(gates, function(x) x@min)
@@ -164,6 +167,10 @@ qc_polygon_gates <- function(gs, gate) {
   # retrieve gates
   gates <- gs_pop_get_gate(gs, gate)
   batch <- pData(gs)$batch
+  if (is.null(batch)) {
+    batch <- NA
+  }
+
   outlier <- pData(gs)$outlier
 
   # build data
