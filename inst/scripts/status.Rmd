@@ -1,0 +1,187 @@
+---
+title: "HIPCCyto Status: `r Sys.time()`"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+params:
+  dev: FALSE
+  immport: FALSE
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(gtools)
+library(ImmPortR)
+library(semver)
+library(aws.s3)
+library(jsonlite)
+library(reactable)
+```
+
+```{r check, include=FALSE}
+dev <- params$dev
+immport <- params$immport
+data_dir <- "/fh/fast/gottardo_r/HIPCCyto/data"
+studies <- mixedsort(dir(data_dir, pattern = "SDY\\d+"))
+checks <- lapply(studies, function(sdy) {
+  res <- data.frame(
+    study = sdy,
+    pi = NA,
+    condition_studied = NA,
+    gating_sets = NA,
+    version = NA,
+    downloaded = FALSE,
+    pre_processed = FALSE,
+    reviewed = NA,
+    faust = NA,
+    uploaded = NA,
+    number_of_files = NA,
+    size = NA
+  )
+  
+  # get study summary
+  if (isTRUE(immport)) {
+    summary <- try(query_study_summary(sdy))
+    if (!is(summary, "try-error")) {
+      res$pi <- summary$pi
+      res$condition_studied <- summary$conditionStudied
+    }
+  }
+  
+  # fcs files downloaded?
+  fcs <- dir(file.path(data_dir, sdy, "ResultFiles/Flow_cytometry_result"), pattern = ".fcs", full.names = TRUE)
+  if (length(fcs) == 0) {
+    return(res)
+  }
+  res$downloaded <- TRUE
+  res$number_of_files <- length(fcs)
+  res$size <- sum(file.info(fcs)$size)
+  
+  # pre-processed?
+  sdy_dir <- file.path(data_dir, sdy, "GatingSets")
+  versions <- dir(sdy_dir, pattern = "^v\\d+.\\d+.\\d+$")
+  if (length(versions) == 0) {
+    return(res)
+  }
+  latest <- versions[order(parse_version(gsub("^v", "", versions)), decreasing = TRUE)][1]
+  ver_dir <- file.path(sdy_dir, latest)
+  completed <- file.exists(file.path(ver_dir, "study.html"))
+  if (isFALSE(completed)) {
+    return(res)
+  }
+  res$pre_processed <- TRUE
+  res$version <- latest
+  
+  # uploaded?
+  uploaded <- object_exists(file.path(sdy, "GatingSets", latest, "study.html"), bucket = "hipccyto", region = "us-east-2")
+  if (isTRUE(uploaded)) {
+    res$uploaded <- TRUE
+    res$study <- paste0("<a href='", file.path("https://hipccyto.s3.us-east-2.amazonaws.com", sdy, "GatingSets", latest, "study.html"), "'>", sdy, "</a>")
+  } else {
+    res$uploaded <- FALSE
+  }
+  
+  # reviewed?
+  gs_dirs <- dir(file.path(ver_dir), pattern = "^gs\\d+$", full.names = TRUE)
+  reviewed <- sapply(gs_dirs, function(path) file.exists(file.path(path, "QC_original.html")))
+  res$reviewed <- all(reviewed == TRUE)
+  
+  # get gating sets
+  gating_sets <- sapply(gs_dirs, function(gs_dir) {
+    summary <- read_json(file.path(gs_dir, "summary"))
+    markers <- paste(summary$markers, collapse = " | ")
+    gs_accession <- summary$gs_accession
+    if (isTRUE(uploaded)) {
+      gs_accession <- paste0("<a href='", file.path("https://hipccyto.s3.us-east-2.amazonaws.com", sdy, "GatingSets", latest, gs_accession, "QC.html"), "'>", gs_accession, "</a>")
+    }
+    paste0(gs_accession, ": ", markers)
+  })
+  res$gating_sets <- paste(unname(gating_sets), collapse = "<br>")
+  
+  # faust results?
+  faust <- dir.exists(file.path(data_dir, sdy, "FAUST", latest))
+  res$faust <- faust
+  
+  res
+})
+
+df <- do.call(rbind, checks)
+
+total_size <- utils:::format.object_size(sum(df$size, na.rm = TRUE), "auto")
+total_files <- sum(df$number_of_files, na.rm = TRUE)
+df$size <- sapply(df$size, function(x) {if (is.na(x)) return(NA); utils:::format.object_size(x, "auto")})
+```
+
+Row 
+-----------------------------------------------------------------------
+
+### fcs files (`r total_size`)
+
+```{r files}
+valueBox(total_files, icon = "fa-file")
+```
+
+### Pre-processed
+
+```{r pre-processed}
+get_sectors <- function(n) {
+  gaugeSectors(
+    success = c(ceiling(n * 0.8), n),
+    warning = c(ceiling(n * 0.4), floor(n * 0.8)),
+    danger = c(0, floor(n * 0.4))
+  )
+}
+n <- nrow(df)
+n_processed <- sum(df$pre_processed, na.rm = TRUE)
+gauge(n_processed, min = 0, max = n, sectors = get_sectors(n), label = "studies")
+```
+
+### Reviewed
+
+```{r reviewed}
+n_reviewed <- sum(df$reviewed, na.rm = TRUE)
+gauge(n_reviewed, min = 0, max = n_processed, sectors = get_sectors(n_processed), label = "studies")
+```
+
+### FAUST
+
+```{r faust}
+n_faust <- sum(df$faust, na.rm = TRUE)
+gauge(n_faust, min = 0, max = n_reviewed, sectors = get_sectors(n_reviewed), label = "studies")
+```
+
+
+Row 
+-----------------------------------------------------------------------
+
+###
+
+```{r table}
+style <- function(value) {
+  list(
+    color = ifelse(isTRUE(value), "green", "red"),
+    fontWeight = ifelse(isTRUE(value), "bold", "normal"))
+}
+reactable(
+  data = df,
+  filterable = TRUE,
+  sortable = FALSE,
+  columns = list(
+   study = colDef(html = TRUE),
+   pi = colDef(show = dev, minWidth = 150),
+   condition_studied = colDef(html = TRUE, minWidth = 150),
+   gating_sets = colDef(html = TRUE, minWidth = 750),
+   downloaded = colDef(show = dev, style = style),
+   pre_processed = colDef(minWidth = 140, style = style),
+   reviewed = colDef(style = style),
+   faust = colDef(style = style),
+   uploaded = colDef(show = dev, style = style),
+   number_of_files = colDef(sortable = TRUE, filterable = FALSE, show = dev, minWidth = 150),
+   size = colDef(show = dev, filterable = FALSE)
+  ),
+  pagination = FALSE,
+  resizable = TRUE
+)
+```
