@@ -189,7 +189,7 @@ flowclust <- function(x) {
 }
 
 #' @importFrom flowWorkspace gs_pop_get_data
-#' @importFrom slurmR slurm_available Slurm_lapply
+#' @importFrom slurmR slurm_available Slurm_lapply opts_slurmR
 compute_flowClusters <- function(gs, debug_dir = NULL) {
   catf(">> Computing for the optimal number of clusters (K) for each sample...")
   cs <- gs_pop_get_data(gs, get_parent(gs))
@@ -198,7 +198,16 @@ compute_flowClusters <- function(gs, debug_dir = NULL) {
     catf(">> Submitting flowClust jobs to slurm...")
     ex <- lapply(sampleNames(cs), function(x) exprs(cs[[x, returnType = "cytoframe"]])[, c("FSC-A", "SSC-A")])
     names(ex) <- sampleNames(cs)
-    flowClusters <- Slurm_lapply(ex, flowclust, njobs = length(ex), mc.cores = 1L, sbatch_opt = list("constraint" = "gizmok"))
+    if (is.null(debug_dir)) {
+      tmp_path <- opts_slurmR$get_tmp_path()
+    } else {
+      tmp_path <- debug_dir
+    }
+    flowClusters <- Slurm_lapply(
+      ex, flowclust,
+      njobs = length(ex), mc.cores = 1L, tmp_path = tmp_path,
+      sbatch_opt = list("constraint" = "gizmok")
+    )
   } else {
     flowClusters <- mclapply(sampleNames(cs), function(x) {
       ex <- exprs(cs[[x, returnType = "cytoframe"]])[, c("FSC-A", "SSC-A")]
