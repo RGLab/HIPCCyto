@@ -70,13 +70,14 @@ apply_nondebris_gate <- function(gs, study) {
   ratios <- gs_pop_get_stats(gs, "Nondebris")$count / gs_pop_get_stats(gs, parent)$count
   names(ratios) <- sampleNames(gs)
   ratio_cutoff <- DATA[[study]]$Nondebris_ratio_cutoff
-  if(is.null(ratio_cutoff))
+  if (is.null(ratio_cutoff)) {
     ratio_cutoff <- 0.0
+  }
   bad_nondebris <- names(ratios[ratios < ratio_cutoff])
-  if(length(bad_nondebris) > 0){
+  if (length(bad_nondebris) > 0) {
     dummy_gate <- rectangleGate("FSC-A" = c(-Inf, Inf))
     # Give those samples fully-permissive gates
-    for(name in bad_nondebris){
+    for (name in bad_nondebris) {
       gh_pop_set_gate(gs[[name]], "Nondebris", dummy_gate)
     }
     recompute(gs, parent)

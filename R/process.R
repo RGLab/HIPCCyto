@@ -179,8 +179,10 @@ create_cytoset <- function(filePath, study, debug_dir = NULL) {
     # We need to handle possibility of extra channels in reference. By design, cytoqc will not automatically delete these
     # but instead will just throw a warning. For our purposes, if there are extra channels in the reference (e.g. Time, extra scatter channels),
     # we can explicitly delete them to ensure consistency for the resulting cytoset
-    missing_channels <- do.call(c, lapply(channel_match$match_result, function(group) {group$missing}))
-    if(length(missing_channels) > 0){
+    missing_channels <- do.call(c, lapply(channel_match$match_result, function(group) {
+      group$missing
+    }))
+    if (length(missing_channels) > 0) {
       # Drop those extra channels from the reference
       channel_ref <- channel_match$ref[!channel_match$ref %in% missing_channels]
       # And re-run the match (now the suggested fix will delete them)
@@ -200,15 +202,17 @@ create_cytoset <- function(filePath, study, debug_dir = NULL) {
 # 1) Specification of reference channels manually or automatically by most abundant group in check
 # 2) Automatic match with optional fuzziness by max.distance
 # 3) Manual updates to override automatic match using map
-custom_match_cytoset <- function(check_result, max.distance, channel_ref, map){
+custom_match_cytoset <- function(check_result, max.distance, channel_ref, map) {
   cs <- attr(check_result, "data")
   # 1) If not specified, use the panel with the greatest consensus (most abundant group in check)
-  if (is.null(channel_ref))
+  if (is.null(channel_ref)) {
     channel_ref <- colnames(cs[[as.data.frame(check_result)[which.max(check_result$nObject), "object"]]])
+  }
 
   # If not specified, no fuzzy match
-  if (is.null(max.distance))
+  if (is.null(max.distance)) {
     max.distance <- 0.0
+  }
   # 2) First try automatic match
   channel_match <- cqc_match(check_result, ref = channel_ref, max.distance = max.distance)
 

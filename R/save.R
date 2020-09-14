@@ -212,7 +212,7 @@ qc_polygon_gates <- function(gs, gate) {
     labs(title = title)
 
   if (is.null(outlier)) {
-    p <- p  + theme(legend.position = "none")
+    p <- p + theme(legend.position = "none")
   }
 
   if (!is.null(batch)) {
