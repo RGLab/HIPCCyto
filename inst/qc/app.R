@@ -21,12 +21,14 @@ ui <- fluidPage(
       width = 10,
       tabsetPanel(
         # tabPanel("Study Summary"),
-        tabPanel("Gating Set Summary",
+        tabPanel(
+          "Gating Set Summary",
           verbatimTextOutput("gs_summary"),
           plotOutput("gs_plot")
         ),
         tabPanel("Plot", uiOutput("gatePlot", height = "800px")),
-        tabPanel("Pop",
+        tabPanel(
+          "Pop",
           plotOutput("distPlot"),
           plotOutput("distPlot_pct"),
           dataTableOutput("popTab")
@@ -48,7 +50,7 @@ server <- function(input, output, session) {
 
   observeEvent(input$load_gs, {
     if (input$gs != "") {
-    path <- file.path(wd, input$study, "GatingSet", input$gs)
+      path <- file.path(wd, input$study, "GatingSet", input$gs)
 
       if (file.exists(path)) {
         gs(load_gs(path))
@@ -120,4 +122,3 @@ server <- function(input, output, session) {
 }
 
 shinyApp(ui = ui, server = server)
-
