@@ -6,4 +6,4 @@
 #SBATCH --constraint=gizmok
 
 ml fhR/4.0.2-foss-2019b Pandoc
-Rscript --no-save --no-restore ${0%/*}/process.R $sdy 24
+Rscript --no-save --no-restore $wd/process.R $sdy 24
