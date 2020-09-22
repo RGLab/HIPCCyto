@@ -53,6 +53,7 @@ DATA <- list(
     target = c(60000, 6000)
   ),
   "SDY180" = list(
+    toRemove = 0.04,
     target = c(45000, 30000),
     batch = "EXPERIMENT NAME"
   )
