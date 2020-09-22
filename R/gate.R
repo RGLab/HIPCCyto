@@ -52,7 +52,11 @@ apply_nondebris_gate <- function(gs, study) {
       grad <- diff(den$y) / diff(den$x)
       peaks <- ggpmisc:::find_peaks(-grad)
     }
-    lim <- den$x[peaks][1]
+    if(any(peaks)) {
+      lim <- den$x[peaks][1]
+    }else{
+      lim <- -Inf
+    }
     rectangleGate("FSC-A" = c(lim, Inf))
   })
   names(gates) <- sampleNames(gs)
