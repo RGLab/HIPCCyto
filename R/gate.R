@@ -48,7 +48,7 @@ apply_nondebris_gate <- function(gs, study) {
     fsc <- exprs(gh_pop_get_data(gs[[x]], get_parent(gs)))[, "FSC-A"]
     den <- density(fsc)
     peaks <- ggpmisc:::find_peaks(-den$y)
-    if (peaks == 0) {
+    if (!any(peaks)) {
       grad <- diff(den$y) / diff(den$x)
       peaks <- ggpmisc:::find_peaks(-grad)
     }
