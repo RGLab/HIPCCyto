@@ -24,6 +24,7 @@ library(crosstalk)
 ```
 
 ```{r load, include=FALSE}
+gs_dir <- params$gs_dir
 gs <- load_gs(file.path(params$gs_dir, "gs"))
 pd <- pData(gs)
 visible <- "hidden"
@@ -165,6 +166,7 @@ if ("Live" %in% gates) {
           $('#samples div.active').removeClass('active');
           $('#' + CSS.escape(id)).addClass('active');
           window.open('#by-sample', '_self');
+          check_box(id);
         });
       } 
     ")
@@ -193,6 +195,7 @@ if ("Nondebris" %in% gates) {
           $('#samples div.active').removeClass('active');
           $('#' + CSS.escape(id)).addClass('active');
           window.open('#by-sample', '_self');
+          check_box(id);
         });
       } 
     ")
@@ -221,6 +224,7 @@ ggplotly(p) %>%
         $('#samples div.active').removeClass('active');
         $('#' + CSS.escape(id)).addClass('active');
         window.open('#by-sample', '_self');
+        check_box(id);
       });
     } 
   ")
@@ -318,12 +322,12 @@ tagList(
           div(
             class = "sample-column",
             style = "flex: 50%; padding: 5px;",
-            img(src = thisPlotInfo$gates, style = "height: 700px; width: 100%; object-fit: contain"),
             div(
               style = paste("display: flex; justify-content: center; visibility:", visible),
-              tag("button", list("Correct lymphocyte gate", id = paste0(thisPlotInfo$name, "-correct"), class = "btn btn-default", onclick = "unflag()", style = "background-color: green")),
-              tag("button", list("Incorrect lymphocyte gate", id = paste0(thisPlotInfo$name, "-incorrect"), class = "btn btn-default", onclick = "flag()", style = "background-color: red"))
-            )
+              tag("label", list("Flagged for imputation: ", style = "color: red; background-color: yellow")),
+              tag("input", list(type = "checkbox", id = paste0(thisPlotInfo$name, "-check"), onclick = "box_click()", style = "width: 20px; height: 20px;"))
+            ),
+            img(src = thisPlotInfo$gates, style = "height: 700px; width: 100%; object-fit: contain")
           ),
           div(
             class = "sample-column",
@@ -363,6 +367,7 @@ $('.dropdown-tab').click(function (e) {
     $('#samples div.active').removeClass('active');
     $('#' + CSS.escape($(this).attr('id'))).addClass('active');
     id = $(this).attr('id');
+    check_box(id);
 })
 
 // previous/next sample buttons
@@ -387,35 +392,52 @@ function sample_button(dir) {
     $('.dropdown-tab').parent('li').eq(i).addClass('active');
     $('#samples div.active').removeClass('active');
     $('#' + CSS.escape(id)).addClass('active');
+    check_box(id);
   }
 }
 
+function check_box(id) {
+  // Get the checkbox
+  var checkBox = document.getElementById(id + "-check");
+  
+  if (checkBox.parentElement.style.visibility == "visible") {
+    // Get the selections
+    var ct_sel = new crosstalk.SelectionHandle(Object.keys(__crosstalk_groups)[1]);
+    
+    if (ct_sel.value.findIndex(x => x === id) == -1) {
+      checkBox.checked = false;
+    } else {
+      checkBox.checked = true;
+    }
+  }
+}
 
-function flag() {
+function box_click() {
   x = $("#samples").find(".tab-pane");
   i = x.map(function() { return this.className; }).get().findIndex(i => i === 'tab-pane active');
   ids =  x.map(function() { return this.id; }).get();
   id = ids[i];
   
-  var ct_sel = new crosstalk.SelectionHandle(Object.keys(__crosstalk_groups)[1]);
-  if (ct_sel.value.findIndex(x => x === id) == -1) {
-    $(".ReactTable").find("input[type=checkbox]").eq(i + 1).click()
-  } else {
-    alert("This sample is already flagged.")
-  }
-}
-
-function unflag() {
-  x = $("#samples").find(".tab-pane");
-  i = x.map(function() { return this.className; }).get().findIndex(i => i === 'tab-pane active');
-  ids =  x.map(function() { return this.id; }).get();
-  id = ids[i];
+  // Get the checkbox
+  var checkBox = document.getElementById(id + "-check");
   
-  var ct_sel = new crosstalk.SelectionHandle(Object.keys(__crosstalk_groups)[1]);
-  if (ct_sel.value.findIndex(x => x === id) == -1) {
-    alert("This sample is already unflagged.")
-  } else {
-    $(".ReactTable").find("input[type=checkbox]").eq(i + 1).click()
+  if (checkBox) {
+    // Get the selections
+    var ct_sel = new crosstalk.SelectionHandle(Object.keys(__crosstalk_groups)[1]);
+    
+    if (checkBox.checked == true) {
+      if (ct_sel.value.findIndex(x => x === id) == -1) {
+        $(".ReactTable").find("input[type=checkbox]").eq(i + 1).click();
+      } else {
+        console.log(id + " is already flagged.");
+      }
+    } else {
+      if (ct_sel.value.findIndex(x => x === id) == -1) {
+        console.log(id + " is already unflagged.");
+      } else {
+        $(".ReactTable").find("input[type=checkbox]").eq(i + 1).click();
+      }
+    }
   }
 }
 </script>
@@ -481,6 +503,7 @@ reactable(data, selection = selection, defaultSelected = defaultSelected, pagina
     $('#samples div.active').removeClass('active');
     $('#' + CSS.escape(id)).addClass('active');
     window.open('#by-sample', '_self');
+    check_box(id);
   }
 "))
 ```
