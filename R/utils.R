@@ -39,6 +39,9 @@ get_markers <- function(study, modify = TRUE) {
   markers <- pns$pnsPreferred
   names(markers) <- pns$pnsReported
 
+  # use reported marker names when standardized names are not available
+  markers[is.na(markers)] <- names(markers)[is.na(markers)]
+
   if (isTRUE(modify)) {
     toModify <- names(markers)[names(markers) %in% names(MARKERS)]
     markers[toModify] <- markers[MARKERS[toModify]]

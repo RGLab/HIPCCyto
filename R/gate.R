@@ -107,9 +107,7 @@ apply_live_gate <- function(gs, study) {
       gating_method = gating_method,
       gating_args = gating_args,
       groupBy = groupBy,
-      collapseDataForGating = collapseDataForGating,
-      mc.cores = detect_cores(),
-      parallel_type = "multicore"
+      collapseDataForGating = collapseDataForGating
     )
   }
 }
