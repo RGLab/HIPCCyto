@@ -47,12 +47,12 @@ apply_nondebris_gate <- function(gs, study) {
   gates <- lapply(sampleNames(gs), function(x) {
     fsc <- exprs(gh_pop_get_data(gs[[x]], get_parent(gs)))[, "FSC-A"]
     den <- density(fsc)
-    peaks <- ggpmisc:::find_peaks(-den$y)
-    if (peaks == 0) {
-      grad <- diff(den$y) / diff(den$x)
-      peaks <- ggpmisc:::find_peaks(-grad)
-    }
-    lim <- den$x[peaks][1]
+    minima <- ggpmisc:::find_peaks(-den$y)
+    grad <- diff(den$y) / diff(den$x)
+    deriv_minima <- ggpmisc:::find_peaks(-grad)
+    dens_lim <- ifelse(any(minima), den$x[minima][1], -Inf)
+    deriv_lim <- ifelse(any(deriv_minima), den$x[deriv_minima][1], -Inf)
+    lim <- ifelse((is.finite(deriv_lim) && grad[deriv_minima][[1]] >= 0), deriv_lim, dens_lim)
     rectangleGate("FSC-A" = c(lim, Inf))
   })
   names(gates) <- sampleNames(gs)
