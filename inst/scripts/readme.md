@@ -99,5 +99,5 @@ After recovering the original gates, repeat the steps 5 and 6.
 ### 9. Update the status dashboard
 
 ```sh
-/fh/fast/gottardo_r/HIPCCyto/HIPCCyto/inst/scripts/updata_stats.sh
+/fh/fast/gottardo_r/HIPCCyto/HIPCCyto/inst/scripts/update_status.sh
 ```

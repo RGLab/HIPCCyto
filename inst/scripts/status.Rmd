@@ -89,7 +89,7 @@ checks <- lapply(studies, function(sdy) {
   res$reviewed <- all(reviewed == TRUE)
   
   # get gating sets
-  gating_sets <- sapply(gs_dirs, function(gs_dir) {
+  gating_sets <- sapply(mixedsort(gs_dirs), function(gs_dir) {
     summary <- read_json(file.path(gs_dir, "summary"))
     markers <- paste(summary$markers, collapse = " | ")
     gs_accession <- summary$gs_accession
