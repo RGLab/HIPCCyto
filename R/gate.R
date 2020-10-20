@@ -156,7 +156,7 @@ apply_lymphocyte_gate <- function(gs, study, debug_dir = NULL) {
 
 # live gate helper functions ---------------------------------------------------
 get_live_marker <- function(gs) {
-  live <- grep("^(L|l)ive|LD|(V|v)iability$", markernames(gs), value = TRUE)
+  live <- grep("^(L|l)ive|LD|(V|v)iability|L/D$", markernames(gs), value = TRUE)
 
   if (length(live) == 0) {
     catf(">> There is no viability dye channel in this gating set...")
