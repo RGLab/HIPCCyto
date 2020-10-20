@@ -56,12 +56,14 @@ for (gs in names(markers)) {
   }
 }
 
-pfile <- tempfile(fileext = ".png")
-pheatmap::pheatmap(mat, cluster_rows = FALSE, cluster_cols = FALSE, color = c("lightgrey", "darkblue"), legend_breaks = c(FALSE, TRUE), legend_labels = c("Marker absent", "Marker present"), filename = pfile, breaks = c(0, 0.5, 1))
-htmltools::img(
-  src = rmarkdown:::base64_encode_file(pfile, base64enc::base64encode),
-  style = "height: 100%; width: 100%; object-fit: contain"
-)
+if (!is.null(m)) {
+  pfile <- tempfile(fileext = ".png")
+  pheatmap::pheatmap(mat, cluster_rows = FALSE, cluster_cols = FALSE, color = c("lightgrey", "darkblue"), legend_breaks = c(FALSE, TRUE), legend_labels = c("Marker absent", "Marker present"), filename = pfile, breaks = c(0, 0.5, 1))
+  htmltools::img(
+    src = HIPCCyto:::encode_img(pfile),
+    style = "height: 100%; width: 100%; object-fit: contain"
+  )
+}
 ```
 
 

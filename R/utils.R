@@ -66,3 +66,7 @@ get_nodes <- function(gs) {
 get_version <- function() {
   paste0("v", packageVersion("HIPCCyto"))
 }
+
+encode_img <- function(file) {
+  paste0("data:", mime::guess_type(file), ";base64,", xfun::base64_encode(file))
+}

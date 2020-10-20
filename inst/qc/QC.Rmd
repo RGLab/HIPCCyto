@@ -246,11 +246,13 @@ sample_names <- sampleNames(gs)
 plotInfo <- lapply(
   seq_along(sample_names), 
   function(i) {
+    gate_file <- file.path(params$gs_dir, sprintf("gates/%s.png", sample_names[i]))
+    spillover_file <- file.path(params$gs_dir, sprintf("spillover/%s.png", sample_names[i]))
     list(
       name = sample_names[i],
       i = i,
-      gates = rmarkdown:::base64_encode_file(file.path(params$gs_dir, sprintf("gates/%s.png", sample_names[i])), base64enc::base64encode),
-      spillover = rmarkdown:::base64_encode_file(file.path(params$gs_dir, sprintf("spillover/%s.png", sample_names[i])), base64enc::base64encode),
+      gates = HIPCCyto:::encode_img(gate_file),
+      spillover = HIPCCyto:::encode_img(spillover_file),
       pdata = pd[i, ]
     )
   })
@@ -454,7 +456,7 @@ Column {.tabset}
 
 ```{r markers}
 img(
-  src = rmarkdown:::base64_encode_file(file.path(params$gs_dir, "markers.png"), base64enc::base64encode),
+  src = HIPCCyto:::encode_img(file.path(params$gs_dir, "markers.png")),
   style = "height: 100%; width: 100%; object-fit: contain"
 )
 ```
