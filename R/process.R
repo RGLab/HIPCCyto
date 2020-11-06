@@ -337,15 +337,16 @@ compensate_gs <- function(gs, study, debug_dir = NULL) {
   gs
 }
 
-# transform fluoresence channels with biexponential transformation
-#' @importFrom flowWorkspace colnames transform
-#' @importFrom flowCore estimateLogicle
+# transform fluoresence channels with inverse hyperbolic sine transformation
+#' @importFrom flowWorkspace colnames transform transformerList
 transform_gs <- function(gs, study, debug_dir = NULL) {
-  catf(">> Applying transformation...")
+  catf(">> Applying transformation (inverse hyperbolic sine with cofactor = 150)...")
   channels <- colnames2(gs)
   if (length(channels) > 0) {
-    trans <- estimateLogicle(gs[[1]], channels)
-    gs <- transform(gs, trans)
+    cofactor <- 150
+    trans_obj <- hipccyto_asinht_trans(cofactor)
+    trans_list <- transformerList(channels, trans_obj)
+    gs <- transform(gs, trans_list)
   }
 
   save_debug(gs, "transform_gs", debug_dir)
@@ -394,4 +395,23 @@ save_debug <- function(obj, func, debug_dir = NULL) {
       saveRDS(obj, path)
     }
   }
+}
+
+arcsinh_transform <- function(cofactor, transformationId = "HIPCCytoArcsinh") {
+  t <- new("transform", .Data = function(x) asinh(x / cofactor))
+  t@transformationId <- transformationId
+  t
+}
+
+sinh_transform <- function(cofactor, transformationId = "HIPCCytoSinh") {
+  t <- new("transform", .Data = function(x) sinh(x) * cofactor)
+  t@transformationId <- transformationId
+  t
+}
+
+#' @importFrom scales trans_new
+hipccyto_asinht_trans <- function(cofactor) {
+  trans <- arcsinh_transform(cofactor)
+  inv <- sinh_transform(cofactor)
+  trans_new("hipccyto_asinht", transform = trans, inverse = inv)
 }
