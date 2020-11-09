@@ -98,6 +98,7 @@ save_gating_set_summary <- function(gs, gs_accession, output_dir) {
 
 # qc gate functions  -----------------------------------------------------------
 #' @importFrom flowWorkspace gh_pop_get_gate gs_pop_get_gate
+#' @importFrom methods is
 qc_gates <- function(gs, gate) {
   gt <- gh_pop_get_gate(gs[[1]], gate)
 
@@ -119,6 +120,7 @@ qc_gates <- function(gs, gate) {
   p
 }
 
+#' @importFrom flowCore exprs
 #' @importFrom ggplot2 ggplot geom_vline xlim labs facet_grid
 qc_1d_gates <- function(gs, gate) {
   # retrieve gates
@@ -162,6 +164,8 @@ qc_1d_gates <- function(gs, gate) {
   p
 }
 
+#' @importFrom methods is as
+#' @importFrom flowCore exprs
 #' @importFrom ggplot2 geom_polygon ylim theme
 qc_polygon_gates <- function(gs, gate) {
   # retrieve gates
@@ -226,6 +230,8 @@ qc_polygon_gates <- function(gs, gate) {
 
 
 # plot generating functions ----------------------------------------------------
+#' @importFrom stats density
+#' @importFrom flowCore exprs
 #' @importFrom ggplot2 xlab ylab geom_path
 plot_marker <- function(gs, marker) {
   cs <- gs_pop_get_data(gs, get_parent(gs))
@@ -266,6 +272,8 @@ plot_marker <- function(gs, marker) {
   p
 }
 
+#' @importFrom stats density
+#' @importFrom flowCore exprs
 #' @importFrom ggplot2 facet_wrap theme_light theme guides guide_legend
 plot_markers <- function(gs) {
   nc <- gs_pop_get_data(gs, get_parent(gs))
@@ -311,6 +319,7 @@ plot_markers <- function(gs) {
 }
 
 #' @importFrom flowWorkspace gh_get_pop_paths
+#' @importFrom flowCore exprs
 #' @importFrom ggplot2 geom_density stat
 plot_density <- function(gh, channel) {
   gates <- gh_get_pop_paths(gh, path = 1)
@@ -485,6 +494,8 @@ find_outliers <- function(gs, byBatch = TRUE, cl = 0.99, step = 3) {
 }
 
 #' @importFrom diptest dip.test
+#' @importFrom flowCore exprs
+#' @importFrom stats cov t.test
 #' @importFrom SIBER pointsToEllipsoid ellipseInOut
 test_outliers <- function(gs, cl = 0.99, step = 3) {
   if (length(cl) == 1) {

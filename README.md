@@ -60,7 +60,7 @@ gsl <- process_study(study = "SDY820", input_dir = file_dir)
 1. Standardize marker names using ImmPort's `fcs_header_marker` table.
 1. Merge metadata and batch information if available.
 1. Compensate using the embeded spillover matrix in FCS files.
-1. Transform the fluorescence channels using `estimateLogicle` function from `flowCore` package.
+1. Transform the fluorescence channels using the inverse hyperbolic sine transformation with `cofactor = 150` ([Weber & Robinson, 2016](https://onlinelibrary.wiley.com/doi/full/10.1002/cyto.a.23030)).
 1. Pre-gate up to "Lymphocytes" using various automatic gating methods.
 
 

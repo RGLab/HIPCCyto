@@ -41,7 +41,10 @@ Imports:
     crosstalk,
     bsplus,
     flowIncubator,
-    scales
+    scales,
+    methods,
+    stats,
+    utils
 Suggests:
     usethis
 Remotes:

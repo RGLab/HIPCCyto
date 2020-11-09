@@ -1,5 +1,5 @@
 #' @importFrom assertthat assert_that is.dir is.writeable not_empty
-#' @importFrom flowWorkspace load_gs pData sampleNames gs_pop_get_gate recompute
+#' @importFrom flowWorkspace load_gs pData sampleNames gs_pop_get_gate pData<- recompute save_gs
 impute_gates <- function(gs_dir, samples_to_impute, by_batch = TRUE, method = "nearest") {
   assert_that(is.dir(gs_dir))
   assert_that(is.writeable(gs_dir))
@@ -72,6 +72,7 @@ impute_gates <- function(gs_dir, samples_to_impute, by_batch = TRUE, method = "n
 }
 
 #' @importFrom flowWorkspace gs_pop_get_gate gs_pop_set_gate
+#' @importFrom methods is
 #' @importFrom flowCore ellipsoidGate
 impute_by_consensus <- function(gs, samples_to_impute, gate) {
   # Get the template gates
@@ -139,7 +140,7 @@ impute_by_nearest <- function(gs, samples_to_impute, gate) {
   samples_to_impute
 }
 
-#' @importFrom flowWorkspace load_gs gs_pop_set_gate save_gs
+#' @importFrom flowWorkspace load_gs gs_pop_set_gate pData<- save_gs
 recover_original_gates <- function(gs_dir) {
   gate <- "Lymphocytes"
   gs <- load_gs(file.path(gs_dir, "gs"))

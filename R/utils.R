@@ -63,10 +63,13 @@ get_nodes <- function(gs) {
   gs_get_pop_paths(gs, path = 1)[-1]
 }
 
+#' @importFrom utils packageVersion
 get_version <- function() {
   paste0("v", packageVersion("HIPCCyto"))
 }
 
+#' @importFrom mime guess_type
+#' @importFrom xfun base64_encode
 encode_img <- function(file) {
-  paste0("data:", mime::guess_type(file), ";base64,", xfun::base64_encode(file))
+  paste0("data:", guess_type(file), ";base64,", base64_encode(file))
 }

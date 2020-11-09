@@ -40,7 +40,9 @@ apply_singlet_gate <- function(gs, channel) {
   }
 }
 
-#' @importFrom flowWorkspace recompute gs_pop_get_parent gs_pop_get_parent gs_pop_get_stats gh_pop_set_gate
+#' @importFrom flowWorkspace sampleNames recompute gs_pop_get_parent gs_pop_get_stats gh_pop_set_gate
+#' @importFrom flowCore exprs
+#' @importFrom stats density
 apply_nondebris_gate <- function(gs, study) {
   catf(">> Applying non-debris gate by forward scatter (Nondebris)...")
 
@@ -130,7 +132,7 @@ apply_lymphocyte_gate <- function(gs, study, debug_dir = NULL) {
 
 
 # quadrant gate helper functions -----------------------------------------------
-#' @importFrom flowCore rectangleGate
+#' @importFrom flowCore exprs rectangleGate
 .quadrantGate <- function(fr, pp_res, channels = NA, filterId = "", toRemove = 0, quadrant, ...) {
   lim_func <- switch(
     quadrant,
@@ -187,7 +189,8 @@ flowclust <- function(x) {
   fc
 }
 
-#' @importFrom flowWorkspace gs_pop_get_data
+#' @importFrom flowWorkspace gs_pop_get_data sampleNames
+#' @importFrom flowCore exprs
 #' @importFrom slurmR slurm_available Slurm_lapply opts_slurmR
 compute_flowClusters <- function(gs, debug_dir = NULL) {
   catf(">> Computing for the optimal number of clusters (K) for each sample...")
@@ -220,6 +223,8 @@ compute_flowClusters <- function(gs, debug_dir = NULL) {
   flowClusters
 }
 
+#' @importFrom stats dist
+#' @importFrom utils tail
 select_cluster <- function(fitted_means, target) {
   target_dist <- as.matrix(dist(rbind(fitted_means, target)))
   target_dist <- tail(target_dist, n = 1)[seq_len(nrow(fitted_means))]

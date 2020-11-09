@@ -291,6 +291,7 @@ create_gs <- function(cs, study, debug_dir = NULL) {
 }
 
 #' @importFrom flowWorkspace markernames markernames<-
+#' @importFrom methods is
 standardize_markernames <- function(gs, study, debug_dir = NULL) {
   catf(">> Standardizing marker names...")
 
@@ -337,7 +338,9 @@ compensate_gs <- function(gs, study, debug_dir = NULL) {
   gs
 }
 
-# transform fluoresence channels with inverse hyperbolic sine transformation
+# transform fluorescence channels using inverse hyperbolic sine transformation
+# with cofactor = 150
+# https://onlinelibrary.wiley.com/doi/full/10.1002/cyto.a.23030
 #' @importFrom flowWorkspace colnames transform transformerList
 transform_gs <- function(gs, study, debug_dir = NULL) {
   catf(">> Applying transformation (inverse hyperbolic sine with cofactor = 150)...")
@@ -381,6 +384,7 @@ gate_gs <- function(gs, study, debug_dir = NULL) {
 
 
 # helper functions -------------------------------------------------------------
+#' @importFrom methods is
 #' @importFrom flowWorkspace cs_get_h5_file_path save_cytoset
 #' @importFrom flowWorkspace save_gs
 save_debug <- function(obj, func, debug_dir = NULL) {
@@ -397,12 +401,14 @@ save_debug <- function(obj, func, debug_dir = NULL) {
   }
 }
 
+#' @importFrom methods new
 arcsinh_transform <- function(cofactor, transformationId = "HIPCCytoArcsinh") {
   t <- new("transform", .Data = function(x) asinh(x / cofactor))
   t@transformationId <- transformationId
   t
 }
 
+#' @importFrom methods new
 sinh_transform <- function(cofactor, transformationId = "HIPCCytoSinh") {
   t <- new("transform", .Data = function(x) sinh(x) * cofactor)
   t@transformationId <- transformationId

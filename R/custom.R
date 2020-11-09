@@ -66,6 +66,7 @@ apply_dump_gate_custom <- function(gs, plot = FALSE, gate_range = c(1.8, 2.8)) {
   gs
 }
 
+#' @importFrom flowCore exprs
 compute_flowClusters_custom <- function(gs, debug_dir = NULL, nclust = 1) {
   catf(">> Computing for the optimal number of clusters (K) for each sample...")
   cs <- gs_pop_get_data(gs, get_parent(gs))
