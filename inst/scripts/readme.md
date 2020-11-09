@@ -42,10 +42,10 @@ Rscript -e 'source("data-raw/DATA.R"); devtools::install()'
 ### 4. Process study
 
 ```sh
-inst/scripts/run.sh <STUDY_ACCESSION>
+inst/scripts/run_preprocess.sh <STUDY_ACCESSION>
 ```
 
-Replace `<STUDY_ACCESSION>` with the study acession you'd like to process. `run.sh` will launch a slurm job in gizmok node and store a log file in `/fh/fast/gottardo_r/HIPCCyto/logs` and gating sets in `/fh/fast/gottardo_r/HIPCCyto/data/<STUDY_ACCESSION>/GatingSets/<HIPCCYTO_VERSION>`. The intermediate files for debugging purposes will be stored in `/fh/scratch/delete10/gottardo_r/HIPCCyto/<STUDY_ACCESSION>`.
+Replace `<STUDY_ACCESSION>` with the study acession you'd like to process. `run_preprocess.sh` will launch a slurm job in gizmok node and store a log file in `/fh/fast/gottardo_r/HIPCCyto/logs` and gating sets in `/fh/fast/gottardo_r/HIPCCyto/data/<STUDY_ACCESSION>/GatingSets/<HIPCCYTO_VERSION>`. The intermediate files for debugging purposes will be stored in `/fh/scratch/delete10/gottardo_r/HIPCCyto/<STUDY_ACCESSION>`.
 
 
 ### 5. Review the QC reports and flag gates to impute
