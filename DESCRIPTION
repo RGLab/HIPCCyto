@@ -44,7 +44,9 @@ Imports:
     scales,
     methods,
     stats,
-    utils
+    utils,
+    mime,
+    xfun
 Suggests:
     usethis
 Remotes:
