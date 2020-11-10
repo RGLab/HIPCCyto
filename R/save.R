@@ -1,3 +1,15 @@
+#' Save gating sets and create QC reports and plots
+#'
+#' @param gsl A list. List of gating sets to save.
+#' @param output_dir A character. Output directory.
+#' @param qc A logical. Create QC reports/plots.
+#'
+#' @return A character. Output path.
+#' @examples
+#' \dontrun{
+#' save_gating_sets(gsl, "SDY820/gs_dir")
+#' }
+#'
 #' @importFrom flowWorkspace save_gs
 #' @importFrom jsonlite toJSON
 #' @importFrom ggcyto autoplot ggcyto

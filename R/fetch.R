@@ -1,3 +1,14 @@
+#' Retrieve FCS files from ImmPort
+#'
+#' @param study A character. ImmPort study accession.
+#' @param output_dir A character. Output directory.
+#'
+#' @return A character. Output path.
+#' @examples
+#' \dontrun{
+#' fetch_files("SDY820")
+#' }
+#'
 #' @importFrom ImmPortR list_immport download_immport
 #' @export
 fetch_files <- function(study, output_dir = ".") {

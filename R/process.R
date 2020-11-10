@@ -1,3 +1,15 @@
+#' Pre-process a ImmPort study with flow cytometry data
+#'
+#' @param study A character. ImmPort study accession.
+#' @param input_dir A character. Input directory.
+#' @param debug_dir A character. Debug directory.
+#'
+#' @return A list of gating set objects.
+#' @examples
+#' \dontrun{
+#' gsl <- process_study("SDY820", "SDY820/ResultFiles/Flow_cytometry_result")
+#' }
+#'
 #' @importFrom parallel mclapply
 #' @export
 process_study <- function(study, input_dir, debug_dir = NULL) {
