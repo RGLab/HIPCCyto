@@ -319,9 +319,13 @@ plot_markers <- function(gs) {
     ylab("count") +
     facet_wrap("marker")
 
+  alpha <- 0.2
   if (!is.null(pd$batch)) {
     p <- p +
-      geom_path(aes(x = x, y = y, group = sample, color = batch), alpha = 0.2)
+      geom_path(aes(x = x, y = y, group = sample, color = batch), alpha = alpha)
+  } else {
+    p <- p +
+      geom_path(aes(x = x, y = y, group = sample), alpha = alpha)
   }
 
   p +
