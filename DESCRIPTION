@@ -1,6 +1,6 @@
 Package: HIPCCyto
 Title: HIPC Cytometry
-Version: 0.0.10
+Version: 0.0.11
 Authors@R: c(
     person("Ju Yeong", "Kim", role = c("aut", "cre"), email = "jkim2345@fredhutch.org"),
     person("Jake", "Wagner", role = "aut"))

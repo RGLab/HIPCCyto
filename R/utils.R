@@ -13,16 +13,12 @@ get_dr <- function() {
   paste0("DR", query_datarelversion())
 }
 
-#' @importFrom flowCore parameters
+# fluorescence channel names
 #' @importFrom flowWorkspace gh_pop_get_data
 colnames2 <- function(gs) {
-  # can't use this for now
-  # grep("SC-|Time", colnames(gs), invert = TRUE, value = TRUE)
-
-  channels <- parameters(gh_pop_get_data(gs[[1]]))@data$name
-  markers <- parameters(gh_pop_get_data(gs[[1]]))@data$desc
-
-  unname(channels[!is.na(markers)])
+  cf <- gh_pop_get_data(gs[[1]])
+  spillover <- get_spillover(cf)
+  colnames(spillover)
 }
 
 #' @importFrom flowWorkspace gs_get_pop_paths

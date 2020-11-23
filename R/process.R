@@ -166,7 +166,7 @@ process_panel <- function(files, debug_dir = NULL) {
 
 
 # processing functions ---------------------------------------------------------
-#' @importFrom flowWorkspace load_cytoset_from_fcs cytoset
+#' @importFrom flowWorkspace load_cytoset_from_fcs cytoset colnames<-
 #' @importFrom cytoqc cqc_load_fcs cqc_check cqc_match cqc_match_update cqc_match_remove cqc_fix
 create_cytoset <- function(filePath, study, debug_dir = NULL) {
   catf(">> Reading files and creating a cytoset...")
@@ -204,8 +204,25 @@ create_cytoset <- function(filePath, study, debug_dir = NULL) {
 
     cqc_fix(channel_match)
   }
+
   # cs with consistent channels
   cs <- cytoset(cs)
+
+  # clean scatter channel names
+  colnames(cs) <- gsub("^(F|S)S\\d+-(A|W|H)$", "\\1SC-\\2", colnames(cs))
+
+  # clean marker names of non-fluorescence channels
+  channels <- c("T0", "T1", "INFO", "FSC-H", "FSC-A", "FSC-W", "SSC-H", "SSC-A", "SSC-W", "TIME")
+  to_change <- match(tolower(channels), tolower(colnames(cs)))
+  if (any(!is.na(to_change))) {
+    channels <- channels[!is.na(to_change)]
+    to_change <- to_change[!is.na(to_change)]
+    temp_channels <- paste0("TEMP-", channels)
+    colnames(cs)[to_change] <- temp_channels
+    markernames(cs)[temp_channels] <- NA
+    colnames(cs)[to_change] <- channels
+  }
+
   save_debug(cs, "create_cs", debug_dir)
 
   cs
