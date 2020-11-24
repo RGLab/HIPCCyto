@@ -296,7 +296,6 @@ plot_markers <- function(gs) {
     l <- lapply(names(markernames(gs)), function(channel) {
       dat <- exprs(nc[[x]])[, channel]
       dens <- density(dat)
-      dens$y <- length(dat) / sum(dens$y) * dens$y
       df <- data.frame(
         sample = x,
         marker = unname(markers[channel]),
@@ -316,7 +315,7 @@ plot_markers <- function(gs) {
 
   p <- ggplot(dt) +
     xlab("marker expression") +
-    ylab("count") +
+    ylab("density") +
     facet_wrap("marker")
 
   alpha <- 0.2
