@@ -5,7 +5,8 @@ detect_cores <- function() {
 
 catf <- function(..., file = "", sep = " ", fill = TRUE, labels = NULL,
                  append = FALSE) {
-  cat(..., file = file, sep = sep, fill = fill, labels = labels, append = append)
+  time <- sprintf("[%s]", as.character(Sys.time()))
+  cat(time, ..., file = file, sep = sep, fill = fill, labels = labels, append = append)
 }
 
 #' @importFrom ImmPortR query_datarelversion
