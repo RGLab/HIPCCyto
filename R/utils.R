@@ -41,7 +41,7 @@ get_markers <- function(study, modify = TRUE) {
 
   if (isTRUE(modify)) {
     toModify <- names(markers)[names(markers) %in% names(MARKERS)]
-    markers[toModify] <- markers[MARKERS[toModify]]
+    markers[toModify] <- MARKERS[toModify]
   }
   markers
 }
