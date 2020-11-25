@@ -68,5 +68,6 @@ MARKERS[c("CD4/CD20", "CD4 / CD20", "CD4 /CD20", "CD4/ CD20", "CD20/CD4")] <- "C
 MARKERS[c("Cd85j")] <- "CD85j" # SDY514
 MARKERS[c("Lin-1", "LIN1", "lin-1")] <- "LIN-1" # SDY144 SDY296
 MARKERS[c("SLAM")] <- "SLAN" # SDY144
+MARKERS[c("DUMP-V500-A")] <- "LD" # SDY1640
 
 usethis::use_data(DATA, MARKERS, overwrite = TRUE, internal = TRUE)
