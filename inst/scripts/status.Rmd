@@ -78,7 +78,7 @@ checks <- lapply(studies, function(sdy) {
   uploaded <- object_exists(file.path(sdy, "GatingSets", latest, "study.html"), bucket = "hipccyto", region = "us-east-2")
   if (isTRUE(uploaded)) {
     res$uploaded <- TRUE
-    res$study <- paste0("<a href='", file.path("https://hipccyto.s3.us-east-2.amazonaws.com", sdy, "GatingSets", latest, "study.html"), "'>", sdy, "</a>")
+    res$study <- paste0("<a href='", file.path("https://fh-pi-gottardo-r-eco-public.s3-us-west-2.amazonaws.com/hipccyto", sdy, "GatingSets", latest, "study.html"), "'>", sdy, "</a>")
   } else {
     res$uploaded <- FALSE
   }
@@ -94,7 +94,7 @@ checks <- lapply(studies, function(sdy) {
     markers <- paste(summary$markers, collapse = " | ")
     gs_accession <- summary$gs_accession
     if (isTRUE(uploaded)) {
-      gs_accession <- paste0("<a href='", file.path("https://hipccyto.s3.us-east-2.amazonaws.com", sdy, "GatingSets", latest, gs_accession, "QC.html"), "'>", gs_accession, "</a>")
+      gs_accession <- paste0("<a href='", file.path("https://fh-pi-gottardo-r-eco-public.s3-us-west-2.amazonaws.com/hipccyto", sdy, "GatingSets", latest, gs_accession, "QC.html"), "'>", gs_accession, "</a>")
     }
     paste0(gs_accession, ": ", markers)
   })

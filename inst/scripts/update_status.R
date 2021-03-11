@@ -27,12 +27,14 @@ rmarkdown::render(
 aws.s3::put_object(
   file = file,
   object = "status.html",
-  bucket = "hipccyto",
-  region = "us-east-2"
+  bucket = "fh-pi-gottardo-r-eco-public/hipccyto",
+  acl = "public-read",
+  region = "us-west-2"
 )
 aws.s3::put_object(
   file = file_dev,
   object = "status_dev.html",
-  bucket = "hipccyto",
-  region = "us-east-2"
+  bucket = "fh-pi-gottardo-r-eco-public/hipccyto",
+  acl = "public-read",
+  region = "us-west-2"
 )
