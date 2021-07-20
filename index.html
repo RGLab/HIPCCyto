@@ -85,15 +85,15 @@
 <h2 class="hasAnchor">
 <a href="#docker" class="anchor"></a>Docker</h2>
 <p>There are many dependencies in HIPCCyto, so it takes a long time to install them all. Instead, you can use the Docker image of HIPCCyto.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> pull rglab/hipccyto:latest</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> run <span class="dt">\</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">-it</span> <span class="dt">\</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--user</span> rstudio <span class="dt">\</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">--volume</span> <span class="op">&lt;</span>yourLocalDirectory<span class="op">&gt;</span>:/home/rstudio <span class="dt">\</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--env</span> ImmPortUsername=<span class="op">&lt;</span>yourImmPortUsername<span class="op">&gt;</span> <span class="dt">\</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">--env</span> ImmPortPassword=<span class="op">&lt;</span>yourImmPortPassword<span class="op">&gt;</span> <span class="dt">\</span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    rglab/hipccyto:latest <span class="dt">\</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    R</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1"></a><span class="ex">docker</span> pull rglab/hipccyto:latest</span>
+<span id="cb2-2"><a href="#cb2-2"></a><span class="ex">docker</span> run \</span>
+<span id="cb2-3"><a href="#cb2-3"></a>    -it \</span>
+<span id="cb2-4"><a href="#cb2-4"></a>    --user rstudio \</span>
+<span id="cb2-5"><a href="#cb2-5"></a>    --volume <span class="op">&lt;</span>yourLocalDirectory<span class="op">&gt;</span>:/home/rstudio \</span>
+<span id="cb2-6"><a href="#cb2-6"></a>    --env ImmPortUsername=<span class="op">&lt;</span>yourImmPortUsername<span class="op">&gt;</span> \</span>
+<span id="cb2-7"><a href="#cb2-7"></a>    --env ImmPortPassword=<span class="op">&lt;</span>yourImmPortPassword<span class="op">&gt;</span> \</span>
+<span id="cb2-8"><a href="#cb2-8"></a>    rglab/hipccyto:latest \</span>
+<span id="cb2-9"><a href="#cb2-9"></a>    R</span></code></pre></div>
 <p>Replace <code>&lt;yourLocalDirectory&gt;</code> with the local directory path where you’d like to store the gating sets and <code>&lt;yourImmPortUsername&gt;</code> and <code>&lt;yourImmPortPassword&gt;</code> with your Immport credential. For more information on using docker containers, please read <a href="https://github.com/Bioconductor/bioconductor_docker/blob/master/README.md#using-the-containers">this documentation</a> by Bioconductor.</p>
 </div>
 <div id="usage" class="section level2">
