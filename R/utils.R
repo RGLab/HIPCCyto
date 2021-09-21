@@ -65,6 +65,16 @@ get_version <- function() {
   paste0("v", packageVersion("HIPCCyto"))
 }
 
+#' @importFrom utils packageDescription
+get_commit_hash <- function() {
+  hash <- packageDescription("HIPCCyto")$GithubSHA1
+  if (is.null(hash)) {
+    hash <- ""
+  }
+
+  hash
+}
+
 #' @importFrom mime guess_type
 #' @importFrom xfun base64_encode
 encode_img <- function(file) {

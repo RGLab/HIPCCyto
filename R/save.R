@@ -41,7 +41,7 @@ save_gating_sets <- function(gsl, output_dir, qc = TRUE) {
   })
 
   if (isTRUE(qc)) {
-    try(render_study_report(output_dir, study))
+    try(render_study_report(output_dir))
   }
 
   gsl_path
@@ -92,6 +92,7 @@ summarize_gating_set <- function(gs, gs_accession) {
     batches = as.list(table(pd$batch)),
     participants = unique(pd$participant_id),
     version = get_version(),
+    commit_hash = get_commit_hash(),
     data_release = get_dr()
   )
 }
@@ -293,7 +294,7 @@ plot_markers <- function(gs) {
   markers <- markernames(gs)
 
   densities <- lapply(sampleNames(gs), function(x) {
-    l <- lapply(names(markernames(gs)), function(channel) {
+    l <- lapply(names(markers), function(channel) {
       dat <- exprs(nc[[x]])[, channel]
       dens <- density(dat)
       df <- data.frame(
@@ -314,7 +315,7 @@ plot_markers <- function(gs) {
   dt <- do.call(rbind, densities)
 
   p <- ggplot(dt) +
-    xlab("marker expression") +
+    xlab("intensity") +
     ylab("density") +
     facet_wrap("marker")
 
@@ -477,14 +478,14 @@ render_qc_report <- function(gs_dir) {
   file_path
 }
 
-render_study_report <- function(study_dir, study, version = get_version()) {
+render_study_report <- function(study_dir) {
   catf(">> Compiling study report...")
 
   input <- file.path(study_dir, "study.Rmd")
   file.copy(system.file("qc/study.Rmd", package = "HIPCCyto"), input, overwrite = TRUE)
   render(
     input = input,
-    params = list(study_dir = study_dir, study = study, version = version)
+    params = list(study_dir = study_dir)
   )
 
   file_path <- file.path(study_dir, "study.html")

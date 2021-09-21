@@ -13,6 +13,10 @@
 #' @importFrom parallel mclapply
 #' @export
 process_study <- function(study, input_dir, debug_dir = NULL) {
+  if (get_commit_hash() == "") {
+    stop("Please install from GitHub: `remotes::install_github('RGLab/HIPCCyto')`")
+  }
+
   # summarize files
   files <- summarize_study(study, input_dir, debug_dir = debug_dir)
   files_by_panel <- split(files, files$panel)
@@ -142,21 +146,21 @@ process_panel <- function(files, debug_dir = NULL) {
   catf(paste(strsplit(panel, split = "; ")[[1]], collapse = "\n"))
 
   # load files
-  print(system.time(cs <- create_cytoset(files$filePath, study, debug_dir)))
+  cs <- create_cytoset(files$filePath, study, debug_dir)
 
   # merge metadata
-  print(system.time(cs <- merge_metadata(cs, files, study, debug_dir)))
+  cs <- merge_metadata(cs, files, study, debug_dir)
 
   # merge batch information
-  print(system.time(cs <- merge_batch(cs, study, debug_dir)))
+  cs <- merge_batch(cs, study, debug_dir)
 
   # create a gating set
-  print(system.time(gs <- create_gs(cs, study, debug_dir)))
+  gs <- create_gs(cs, study, debug_dir)
 
   # pre-process
-  print(system.time(gs <- standardize_markernames(gs, study, debug_dir)))
-  print(system.time(gs <- compensate_gs(gs, study, debug_dir)))
-  print(system.time(gs <- transform_gs(gs, study, debug_dir)))
+  gs <- standardize_markernames(gs, study, debug_dir)
+  gs <- compensate_gs(gs, study, debug_dir)
+  gs <- transform_gs(gs, study, debug_dir)
 
   # gate
   gate_gs(gs, study, debug_dir)
@@ -274,9 +278,11 @@ merge_metadata <- function(cs, files, study, debug_dir = NULL) {
   phenoData(cs)$cohort <- files[phenoData(cs)$name, ]$armName
 
   ver <- get_version()
+  hash <- get_commit_hash()
   dr <- get_dr()
   for (i in seq_along(cs)) {
     cf_keyword_insert(cs[[i, returnType = "cytoframe"]], "HIPCCyto_version", ver)
+    cf_keyword_insert(cs[[i, returnType = "cytoframe"]], "HIPCCyto_commit_hash", hash)
     cf_keyword_insert(cs[[i, returnType = "cytoframe"]], "ImmPort_data_release", dr)
   }
 
@@ -398,12 +404,12 @@ gate_gs <- function(gs, study, debug_dir = NULL) {
   } else {
     catf(">> Gating template does not exist for this study...")
     catf(">> Applying default gating methods...")
-    print(system.time(apply_quadrant_gate(gs, study)))
-    print(system.time(apply_singlet_gate(gs, "FSC")))
-    print(system.time(apply_singlet_gate(gs, "SSC")))
-    print(system.time(apply_live_gate(gs, study)))
-    print(system.time(apply_nondebris_gate(gs, study)))
-    print(system.time(apply_lymphocyte_gate(gs, study, debug_dir)))
+    apply_quadrant_gate(gs, study)
+    apply_singlet_gate(gs, "FSC")
+    apply_singlet_gate(gs, "SSC")
+    apply_live_gate(gs, study)
+    apply_nondebris_gate(gs, study)
+    apply_lymphocyte_gate(gs, study, debug_dir)
   }
 
   save_debug(gs, "gate_gs", debug_dir)

@@ -2,8 +2,6 @@
 output: flexdashboard::flex_dashboard
 params:
   study_dir: ""
-  study: ""
-  version: ""
 editor_options: 
   chunk_output_type: console
 ---
@@ -32,8 +30,8 @@ df <- data.frame(
   batches = sapply(summaries, function(x) ifelse(is.null(x), NA, paste0(gtools::mixedsort(names(x[["batches"]])), collapse = "<br>")))
 )
 
-study <- if (params$study == "") unique(unlist(sapply(summaries, function(x) x$study))) else params$study
-version <- if (params$version == "") unique(unlist(sapply(summaries, function(x) x$version))) else params$version
+study <- unique(unlist(sapply(summaries, function(x) x$study)))
+version <- unique(unlist(sapply(summaries, function(x) x$version)))
 ```
 
 ---

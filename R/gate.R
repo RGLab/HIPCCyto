@@ -134,8 +134,7 @@ apply_lymphocyte_gate <- function(gs, study, debug_dir = NULL) {
 # quadrant gate helper functions -----------------------------------------------
 #' @importFrom flowCore exprs rectangleGate
 .quadrantGate <- function(fr, pp_res, channels = NA, filterId = "", toRemove = 0, quadrant, ...) {
-  lim_func <- switch(
-    quadrant,
+  lim_func <- switch(quadrant,
     "1" = c(max, max),
     "2" = c(min, max),
     "3" = c(min, min),
@@ -144,8 +143,7 @@ apply_lymphocyte_gate <- function(gs, study, debug_dir = NULL) {
   ch1_lim <- lim_func[[1]](exprs(fr)[, channels[1]], na.rm = TRUE) * (1 - toRemove)
   ch2_lim <- lim_func[[2]](exprs(fr)[, channels[1]], na.rm = TRUE) * (1 - toRemove)
 
-  range <- switch(
-    quadrant,
+  range <- switch(quadrant,
     "1" = c(0, ch1_lim, 0, ch2_lim),
     "2" = c(-ch1_lim, 0, 0, ch2_lim),
     "3" = c(-ch1_lim, 0, -ch2_lim, 0),

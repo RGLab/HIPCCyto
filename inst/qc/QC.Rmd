@@ -60,7 +60,15 @@ reactable(
     "Number of Participants" = length(unique(pd$participant_id)),
     check.names = FALSE
   ),
-  sortable = FALSE
+  sortable = FALSE,
+  columns = list(
+    "HIPCCyto version" = colDef(
+      cell = function(value) {
+        url <- paste0("https://github.com/RGLab/HIPCCyto/commit/", s$commit_hash)
+        tags$a(href = url, target = "_blank", value)
+      }
+    )
+  )
 )
 ```
 
