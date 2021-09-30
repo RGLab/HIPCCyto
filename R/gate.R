@@ -206,7 +206,10 @@ compute_flowClusters <- function(gs, debug_dir = NULL) {
     flowClusters <- Slurm_lapply(
       ex, flowclust,
       njobs = length(ex), mc.cores = 1L, tmp_path = tmp_path,
-      sbatch_opt = list("constraint" = "gizmok")
+      sbatch_opt = list(
+        "time" = "1:00:00",
+        "constraint" = "gizmok"
+      )
     )
   } else {
     flowClusters <- mclapply(sampleNames(cs), function(x) {
