@@ -2,8 +2,8 @@
 
 .libPaths(c(
   "/fh/fast/gottardo_r/HIPCCyto/R",
-  "/app/software/fhR/4.0.2-foss-2019b",
-  "/app/software/R/4.0.2-foss-2019b/lib/R/library"
+  "/app/software/fhR/4.1.1-foss-2020b",
+  "/app/software/R/4.1.1-foss-2020b/lib/R/library"
 ))
 options(bitmapType = "cairo")
 

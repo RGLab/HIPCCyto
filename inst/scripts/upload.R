@@ -3,8 +3,8 @@ args <- commandArgs(trailingOnly = TRUE)
 
 .libPaths(c(
   "/fh/fast/gottardo_r/HIPCCyto/R",
-  "/app/software/fhR/4.0.2-foss-2019b",
-  "/app/software/R/4.0.2-foss-2019b/lib/R/library"
+  "/app/software/fhR/4.1.1-foss-2020b",
+  "/app/software/R/4.1.1-foss-2020b/lib/R/library"
 ))
 
 study <- args[1]
@@ -26,7 +26,12 @@ system.time(res <- lapply(files, function(file) {
   object <- gsub(data_dir, "", file)
   message(object)
   try(aws.s3::put_object(
-    file = file, object = object, bucket = "hipccyto", multipart = TRUE,
-    region = "us-east-2", headers = list(`Content-Type` = "text/html")
+    file = file,
+    object = object,
+    bucket = "fh-pi-gottardo-r-eco-public/hipccyto",
+    multipart = TRUE,
+    region = "us-west-2",
+    acl = "public-read",
+    headers = list(`Content-Type` = "text/html")
   ))
 }))

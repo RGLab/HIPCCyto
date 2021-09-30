@@ -21,6 +21,7 @@ library(reactable)
 ```
 
 ```{r check, include=FALSE}
+url <- "https://fh-pi-gottardo-r-eco-public.s3-us-west-2.amazonaws.com/hipccyto"
 dev <- params$dev
 immport <- params$immport
 data_dir <- "/fh/fast/gottardo_r/HIPCCyto/data"
@@ -30,6 +31,7 @@ checks <- lapply(studies, function(sdy) {
     study = sdy,
     pi = NA,
     condition_studied = NA,
+    hipc = NA,
     gating_sets = NA,
     version = NA,
     downloaded = FALSE,
@@ -40,25 +42,30 @@ checks <- lapply(studies, function(sdy) {
     number_of_files = NA,
     size = NA
   )
-  
+
   # get study summary
   if (isTRUE(immport)) {
     summary <- try(query_study_summary(sdy))
     if (!is(summary, "try-error")) {
       res$pi <- summary$pi
       res$condition_studied <- summary$conditionStudied
+      res$hipc <- grepl("HIPC", summary$program)
     }
   }
   
   # fcs files downloaded?
-  fcs <- dir(file.path(data_dir, sdy, "ResultFiles/Flow_cytometry_result"), pattern = ".fcs", full.names = TRUE)
+  fcs <- dir(
+    path = file.path(data_dir, sdy, "ResultFiles/Flow_cytometry_result"),
+    pattern = ".fcs",
+    full.names = TRUE
+  )
   if (length(fcs) == 0) {
     return(res)
   }
   res$downloaded <- TRUE
   res$number_of_files <- length(fcs)
   res$size <- sum(file.info(fcs)$size)
-  
+
   # pre-processed?
   sdy_dir <- file.path(data_dir, sdy, "GatingSets")
   versions <- dir(sdy_dir, pattern = "^v\\d+.\\d+.\\d+$")
@@ -73,37 +80,45 @@ checks <- lapply(studies, function(sdy) {
   }
   res$pre_processed <- TRUE
   res$version <- latest
-  
+
   # uploaded?
-  uploaded <- object_exists(file.path(sdy, "GatingSets", latest, "study.html"), bucket = "hipccyto", region = "us-east-2")
+  uploaded <- object_exists(
+    object = file.path(sdy, "GatingSets", latest, "study.html"),
+    bucket = "fh-pi-gottardo-r-eco-public/hipccyto",
+    region = "us-west-2"
+  )
   if (isTRUE(uploaded)) {
     res$uploaded <- TRUE
-    res$study <- paste0("<a href='", file.path("https://fh-pi-gottardo-r-eco-public.s3-us-west-2.amazonaws.com/hipccyto", sdy, "GatingSets", latest, "study.html"), "'>", sdy, "</a>")
+    study_html <- file.path(url, sdy, "GatingSets", latest, "study.html")
+    res$study <- paste0("<a href='", study_html, "'>", sdy, "</a>")
   } else {
     res$uploaded <- FALSE
   }
-  
+
   # reviewed?
   gs_dirs <- dir(file.path(ver_dir), pattern = "^gs\\d+$", full.names = TRUE)
-  reviewed <- sapply(gs_dirs, function(path) file.exists(file.path(path, "QC_original.html")))
+  reviewed <- sapply(gs_dirs, function(path) {
+    file.exists(file.path(path, "QC_original.html"))
+  })
   res$reviewed <- all(reviewed == TRUE)
-  
+
   # get gating sets
   gating_sets <- sapply(mixedsort(gs_dirs), function(gs_dir) {
     summary <- read_json(file.path(gs_dir, "summary"))
     markers <- paste(summary$markers, collapse = " | ")
     gs_accession <- summary$gs_accession
     if (isTRUE(uploaded)) {
-      gs_accession <- paste0("<a href='", file.path("https://fh-pi-gottardo-r-eco-public.s3-us-west-2.amazonaws.com/hipccyto", sdy, "GatingSets", latest, gs_accession, "QC.html"), "'>", gs_accession, "</a>")
+      qc_html <- file.path(url, sdy, "GatingSets", latest, gs_accession, "QC.html")
+      gs_accession <- paste0("<a href='", qc_html, "'>", gs_accession, "</a>")
     }
     paste0(gs_accession, ": ", markers)
   })
   res$gating_sets <- paste(unname(gating_sets), collapse = "<br>")
-  
+
   # faust results?
   faust <- dir.exists(file.path(data_dir, sdy, "FAUST", latest))
   res$faust <- faust
-  
+
   res
 })
 
@@ -111,7 +126,9 @@ df <- do.call(rbind, checks)
 
 total_size <- utils:::format.object_size(sum(df$size, na.rm = TRUE), "auto")
 total_files <- sum(df$number_of_files, na.rm = TRUE)
-df$size <- sapply(df$size, function(x) {if (is.na(x)) return(NA); utils:::format.object_size(x, "auto")})
+df$size <- sapply(df$size, function(x) {
+  if (is.na(x)) return(NA); utils:::format.object_size(x, "auto")
+})
 ```
 
 Row 
@@ -135,21 +152,35 @@ get_sectors <- function(n) {
 }
 n <- nrow(df)
 n_processed <- sum(df$pre_processed, na.rm = TRUE)
-gauge(n_processed, min = 0, max = n, sectors = get_sectors(n), label = "studies")
+gauge(
+  value = n_processed,
+  min = 0, max = n,
+  sectors = get_sectors(n),
+  label = "studies"
+)
 ```
 
 ### Reviewed
 
 ```{r reviewed}
 n_reviewed <- sum(df$reviewed, na.rm = TRUE)
-gauge(n_reviewed, min = 0, max = n_processed, sectors = get_sectors(n_processed), label = "studies")
+gauge(
+  value = n_reviewed,
+  min = 0, max = n_processed,
+  sectors = get_sectors(n_processed),
+  label = "studies"
+)
 ```
 
 ### FAUST
 
 ```{r faust}
 n_faust <- sum(df$faust, na.rm = TRUE)
-gauge(n_faust, min = 0, max = n_reviewed, sectors = get_sectors(n_reviewed), label = "studies")
+gauge(
+  value = n_faust,
+  min = 0, max = n_reviewed,
+  sectors = get_sectors(n_reviewed), label = "studies"
+)
 ```
 
 
@@ -169,17 +200,20 @@ reactable(
   filterable = TRUE,
   sortable = FALSE,
   columns = list(
-   study = colDef(html = TRUE),
-   pi = colDef(show = dev, minWidth = 150),
-   condition_studied = colDef(html = TRUE, minWidth = 150),
-   gating_sets = colDef(html = TRUE, minWidth = 750),
-   downloaded = colDef(show = dev, style = style),
-   pre_processed = colDef(minWidth = 140, style = style),
-   reviewed = colDef(style = style),
-   faust = colDef(style = style),
-   uploaded = colDef(show = dev, style = style),
-   number_of_files = colDef(sortable = TRUE, filterable = FALSE, show = dev, minWidth = 150),
-   size = colDef(show = dev, filterable = FALSE)
+    study = colDef(html = TRUE),
+    pi = colDef(show = dev, minWidth = 150),
+    condition_studied = colDef(html = TRUE, minWidth = 150),
+    hipc = colDef(style = style),
+    gating_sets = colDef(html = TRUE, minWidth = 750),
+    downloaded = colDef(show = dev, style = style),
+    pre_processed = colDef(minWidth = 140, style = style),
+    reviewed = colDef(style = style),
+    faust = colDef(style = style),
+    uploaded = colDef(show = dev, style = style),
+    number_of_files = colDef(
+      sortable = TRUE, filterable = FALSE, show = dev, minWidth = 150
+    ),
+    size = colDef(show = dev, filterable = FALSE)
   ),
   pagination = FALSE,
   resizable = TRUE

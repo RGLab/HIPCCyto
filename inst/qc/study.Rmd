@@ -12,22 +12,39 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE)
 
 ```{r prep}
 dirs <- dir(params$study_dir, pattern = "gs\\d+", full.names = TRUE)
-summaries <- lapply(dirs, function(x) tryCatch(jsonlite::fromJSON(file.path(x, "summary")), error = function(e) NULL))
+summaries <- lapply(dirs, function(x) {
+  tryCatch(
+    expr = jsonlite::fromJSON(file.path(x, "summary")),
+    error = function(e) NULL
+  )
+})
 names(summaries) <- basename(dirs)
 get_col <- function(var, sort = TRUE) {
   f <- ifelse(sort, gtools::mixedsort, c)
-  sapply(summaries, function(x) ifelse(is.null(x), NA, paste0(f(x[[var]]), collapse = "<br>")))
+  sapply(summaries, function(x) {
+    ifelse(is.null(x), NA, paste0(f(x[[var]]), collapse = "<br>"))
+  })
 }
 
 df <- data.frame(
-  QC_report = sapply(names(summaries), function(x) paste0("<a href='", x, "/QC.html'>report</a>")),
-  number_of_samples = sapply(summaries, function(x) ifelse(is.null(x), NA, x$number_of_samples)),
+  QC_report = sapply(names(summaries), function(x) {
+    paste0("<a href='", x, "/QC.html'>report</a>")
+  }),
+  number_of_samples = sapply(summaries, function(x) {
+    ifelse(is.null(x), NA, x$number_of_samples)
+  }),
   markers = get_col("markers"),
   nodes = get_col("nodes", sort = FALSE),
   sample_types = get_col("sample_types"),
   timepoints = get_col("timepoints"),
   cohorts = get_col("cohorts"),
-  batches = sapply(summaries, function(x) ifelse(is.null(x), NA, paste0(gtools::mixedsort(names(x[["batches"]])), collapse = "<br>")))
+  batches = sapply(summaries, function(x) {
+    ifelse(
+      test = is.null(x),
+      yes = NA,
+      no = paste0(gtools::mixedsort(names(x[["batches"]])), collapse = "<br>")
+    )
+  })
 )
 
 study <- unique(unlist(sapply(summaries, function(x) x$study)))
@@ -44,9 +61,14 @@ Markers
 =====================================  
 
 ```{r markers}
-markers <- lapply(summaries, function(x) if(is.null(x)) NA else x[["markers"]])
+markers <- lapply(summaries, function(x) if (is.null(x)) NA else x[["markers"]])
 m <- gtools::mixedsort(unique(unlist(markers)))
-mat <- matrix(0L, nrow = length(markers), ncol = length(m), dimnames = list(names(markers), m))
+mat <- matrix(
+  data = 0L,
+  nrow = length(markers),
+  ncol = length(m),
+  dimnames = list(names(markers), m)
+)
 for (gs in names(markers)) {
   ms <- markers[[gs]]
   if (length(ms) > 0) {
@@ -56,7 +78,16 @@ for (gs in names(markers)) {
 
 if (!is.null(m)) {
   pfile <- tempfile(fileext = ".png")
-  pheatmap::pheatmap(mat, cluster_rows = FALSE, cluster_cols = FALSE, color = c("lightgrey", "darkblue"), legend_breaks = c(FALSE, TRUE), legend_labels = c("Marker absent", "Marker present"), filename = pfile, breaks = c(0, 0.5, 1))
+  pheatmap::pheatmap(
+    mat = mat,
+    cluster_rows = FALSE,
+    cluster_cols = FALSE,
+    color = c("lightgrey", "darkblue"),
+    legend_breaks = c(FALSE, TRUE),
+    legend_labels = c("Marker absent", "Marker present"),
+    filename = pfile,
+    breaks = c(0, 0.5, 1)
+  )
   htmltools::img(
     src = HIPCCyto:::encode_img(pfile),
     style = "height: 100%; width: 100%; object-fit: contain"

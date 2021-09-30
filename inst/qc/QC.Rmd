@@ -82,7 +82,10 @@ flowWorkspace::plot(gs)
 
 ```{r panel}
 m <- markernames(gs)
-reactable(data.frame(Channel = names(m), Marker =  m, row.names = NULL), sortable = FALSE)
+reactable(
+  data = data.frame(Channel = names(m), Marker =  m, row.names = NULL),
+  sortable = FALSE
+)
 ```
 
 Column {.tabset}
@@ -99,19 +102,34 @@ ImmPortR:::query(sprintf("study/summary/%s", s$study))
 #### 
 
 ```{r sample-types}
-reactable(as.data.frame(table(pd$type)), pagination = FALSE, sortable = FALSE, columns = list(Var1 = colDef(name = c("Sample type"))))
+reactable(
+  data = as.data.frame(table(pd$type)),
+  pagination = FALSE,
+  sortable = FALSE,
+  columns = list(Var1 = colDef(name = c("Sample type")))
+)
 ```
 
 #### 
 
 ```{r timepoints}
-reactable(as.data.frame(table(paste(pd$study_time_collected, pd$study_time_collected_unit))), pagination = FALSE, sortable = FALSE, columns = list(Var1 = colDef(name = c("Study time collected"))))
+reactable(
+  data = as.data.frame(table(paste(pd$study_time_collected, pd$study_time_collected_unit))),
+  pagination = FALSE,
+  sortable = FALSE,
+  columns = list(Var1 = colDef(name = c("Study time collected")))
+)
 ```
 
 #### 
 
 ```{r cohorts}
-reactable(as.data.frame(table(pd$cohort)), pagination = FALSE, sortable = FALSE, columns = list(Var1 = colDef(name = c("Cohort"))))
+reactable(
+  data = as.data.frame(table(pd$cohort)),
+  pagination = FALSE,
+  sortable = FALSE,
+  columns = list(Var1 = colDef(name = c("Cohort")))
+)
 ```
 
 #### 
@@ -122,20 +140,32 @@ if (is.null(pd$batch)) {
 } else {
   tbl <- as.data.frame(table(pd$batch))
 }
-reactable(tbl, pagination = FALSE, sortable = FALSE, columns = list(Var1 = colDef(name = c("Batch"))))
+reactable(
+  data = tbl,
+  pagination = FALSE,
+  sortable = FALSE,
+  columns = list(Var1 = colDef(name = c("Batch")))
+)
 ```
 
 #### 
 
 ```{r outliers, eval=to_impute}
-reactable(as.data.frame(table(pd$outlier)), pagination = FALSE, sortable = FALSE, columns = list(Var1 = colDef(name = c("Outliers"))))
+reactable(
+  data = as.data.frame(table(pd$outlier)),
+  pagination = FALSE,
+  sortable = FALSE,
+  columns = list(Var1 = colDef(name = c("Outliers")))
+)
 ```
 
 ### Custom processing parameters
 
 ```{r parameters}
 custom_params <- HIPCCyto:::DATA[[s$study]]
-if (isFALSE(to_impute)) custom_params$imputed_lymphocyte_gates <- pd$name[as.logical(pd$imputed)]
+if (isFALSE(to_impute)) {
+  custom_params$imputed_lymphocyte_gates <- pd$name[as.logical(pd$imputed)]
+}
 custom_params
 ```
 
@@ -252,7 +282,7 @@ Row {data-height=15}
 ```{r samples}
 sample_names <- sampleNames(gs)
 plotInfo <- lapply(
-  seq_along(sample_names), 
+  seq_along(sample_names),
   function(i) {
     gate_file <- file.path(params$gs_dir, sprintf("gates/%s.png", sample_names[i]))
     spillover_file <- file.path(params$gs_dir, sprintf("spillover/%s.png", sample_names[i]))
@@ -503,19 +533,25 @@ if (isTRUE(to_impute)) {
 } else {
   selection <- defaultSelected <- NULL
 }
-reactable(data, selection = selection, defaultSelected = defaultSelected, pagination = FALSE, onClick = JS("
-  function(rowInfo, colInfo) {
-    console.log(rowInfo);
-    i = rowInfo.index;
-    id = rowInfo.original.name;
-    $('.dropdown-menu li.active').removeClass('active');
-    $('.dropdown-tab').parent('li').eq(i).addClass('active');
-    $('#samples div.active').removeClass('active');
-    $('#' + CSS.escape(id)).addClass('active');
-    window.open('#by-sample', '_self');
-    check_box(id);
-  }
-"))
+reactable(
+  data = data,
+  selection = selection,
+  defaultSelected = defaultSelected,
+  pagination = FALSE,
+  onClick = JS("
+    function(rowInfo, colInfo) {
+      console.log(rowInfo);
+      i = rowInfo.index;
+      id = rowInfo.original.name;
+      $('.dropdown-menu li.active').removeClass('active');
+      $('.dropdown-tab').parent('li').eq(i).addClass('active');
+      $('#samples div.active').removeClass('active');
+      $('#' + CSS.escape(id)).addClass('active');
+      window.open('#by-sample', '_self');
+      check_box(id);
+    }
+  ")
+)
 ```
 
 <script>
