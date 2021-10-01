@@ -243,21 +243,31 @@ qc_polygon_gates <- function(gs, gate) {
 
 
 # plot generating functions ----------------------------------------------------
-#' @importFrom stats density
-#' @importFrom flowCore exprs
-#' @importFrom ggplot2 xlab ylab geom_path
-plot_marker <- function(gs, marker) {
-  cs <- gs_pop_get_data(gs, get_parent(gs))
+plot_marker <- function(gs, marker, node = get_parent(gs), by = "batch") {
+  cf <- gh_pop_get_data(gs[[1]], node)
   pd <- pData(gs)
 
   if (is.null(names(marker))) {
-    channel <- getChannelMarker(cs[[1]], marker)$name
+    channel <- getChannelMarker(cf, marker)$name
   } else {
     channel <- names(marker)
   }
 
+  plot_channel(gs, channel, node)
+}
+
+#' @importFrom stats density
+#' @importFrom flowCore exprs
+#' @importFrom ggplot2 xlab ylab geom_path ggtitle
+plot_channel <- function(gs, channel, node = get_parent(gs), by = "batch") {
+  cs <- gs_pop_get_data(gs, node)
+  pd <- pData(gs)
+  marker <- unname(markernames(gs)[channel])
+  label <- ifelse(is.na(marker), channel, paste(channel, marker))
+  label <- paste(label, "@", node)
+
   densities <- lapply(sampleNames(cs), function(x) {
-    tmp <- density(exprs(cs[[x]])[, channel])
+    tmp <- density(exprs(cs[[x]][, channel]))
     df <- data.frame(
       sample = x,
       x = tmp$x,
@@ -265,8 +275,8 @@ plot_marker <- function(gs, marker) {
       check.names = FALSE,
       stringsAsFactors = FALSE
     )
-    if (!is.null(pd$batch)) {
-      df$batch <- pd[x, "batch"]
+    if (by %in% colnames(pd)) {
+      df$by <- pd[x, by]
     }
     df
   })
@@ -274,12 +284,13 @@ plot_marker <- function(gs, marker) {
 
   p <- ggplot(dt) +
     geom_path(aes(x = x, y = y, group = sample), alpha = 0.2) +
-    xlab(marker) +
+    xlab(label) +
     ylab("density")
 
-  if (!is.null(pd$batch)) {
+  if (by %in% colnames(pd)) {
     p <- p +
-      facet_grid(batch ~ .)
+      facet_grid(by ~ .) +
+      ggtitle(sprintf("By %s", by))
   }
 
   p

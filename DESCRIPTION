@@ -58,6 +58,6 @@ Remotes:
     glin/reactable,
     RGLab/scamp,
     RGLab/FAUST
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 URL: https://github.com/RGLab/HIPCCyto
 BugReports: https://github.com/RGLab/HIPCCyto/issues
