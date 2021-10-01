@@ -296,6 +296,31 @@ plot_channel <- function(gs, channel, node = get_parent(gs), by = "batch") {
   p
 }
 
+#' @importFrom ggplot2 stat_function aes_
+plot_channel_ecdf <- function(gs, channel, node = get_parent(gs), by = "batch") {
+  cs <- gs_pop_get_data(gs, node)
+  pd <- pData(gs)
+
+  ecdf_list <- lapply(sampleNames(cs), function(x) {
+    tmp <- exprs(cs[[x]][, channel])[, 1]
+    ecdf(tmp)
+  })
+  channel_range <- data.frame(x = unname(range(cs[[1]][, channel])))
+
+  if (by %in% colnames(pd)) {
+    mapping <- lapply(pd[, by], function(x) aes_(colour = x))
+  } else {
+    mapping <- lapply(sampleNames(gs), function(x) aes())
+  }
+
+  stat_list <- Map(
+    f = stat_function,
+    fun = ecdf_list, geom = "path", alpha = 0.6, mapping = mapping
+  )
+
+  ggplot(channel_range, aes(x = x)) + stat_list + xlab(channel) + ylab("F(x)")
+}
+
 #' @importFrom stats density
 #' @importFrom flowCore exprs
 #' @importFrom ggplot2 facet_wrap theme_light theme guides guide_legend
