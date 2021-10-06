@@ -62,12 +62,12 @@ create_qc_files <- function(gs, gs_accession, output_dir, full = FALSE) {
 
     for (channel in colnames2(gs)) {
       marker <- markernames(gs)[channel]
-      save_marker_plots_by_marker(gs, marker, output_dir)
+      save_density_plots_by_marker(gs, marker, output_dir)
     }
 
     for (channel in colnames2(gs)) {
       marker <- markernames(gs)[channel]
-      save_density_plots_by_marker(gs, marker, output_dir)
+      save_density_plots_by_gate(gs, marker, output_dir)
     }
   }
 
@@ -241,30 +241,47 @@ qc_polygon_gates <- function(gs, gate) {
   p
 }
 
-
-# plot generating functions ----------------------------------------------------
-plot_marker <- function(gs, marker, node = get_parent(gs), by = "batch") {
-  cf <- gh_pop_get_data(gs[[1]], node)
-  pd <- pData(gs)
-
+# plot utility functions -------------------------------------------------------
+get_channel <- function(gs, marker) {
   if (is.null(names(marker))) {
+    cf <- gh_pop_get_data(gs[[1]], node)
     channel <- getChannelMarker(cf, marker)$name
   } else {
     channel <- names(marker)
   }
+}
 
-  plot_channel(gs, channel, node)
+make_label <- function(gs, channel, node) {
+  marker <- unname(markernames(gs)[channel])
+  label <- ifelse(is.na(marker), channel, paste(channel, marker))
+  paste(label, "@", node)
+}
+
+get_range <- function(cs, channel) {
+  c(
+    min(unlist(lapply(cs, function(x) min(exprs(x[, channel])[, 1])))),
+    max(unlist(lapply(cs, function(x) max(exprs(x[, channel])[, 1]))))
+  )
+}
+
+# plot generating functions ----------------------------------------------------
+plot_density_by_marker <- function(gs, marker, node = get_parent(gs), by = "batch") {
+  channel <- get_channel(gs, marker)
+  plot_density_by_channel(gs, channel, node)
+}
+
+plot_ecdf_by_marker <- function(gs, marker, node = get_parent(gs), by = "batch") {
+  channel <- get_channel(gs, marker)
+  plot_ecdf_by_channel(gs, channel, node)
 }
 
 #' @importFrom stats density
 #' @importFrom flowCore exprs
 #' @importFrom ggplot2 xlab ylab geom_path ggtitle
-plot_channel <- function(gs, channel, node = get_parent(gs), by = "batch") {
+plot_density_by_channel <- function(gs, channel, node = get_parent(gs), by = "batch") {
   cs <- gs_pop_get_data(gs, node)
   pd <- pData(gs)
-  marker <- unname(markernames(gs)[channel])
-  label <- ifelse(is.na(marker), channel, paste(channel, marker))
-  label <- paste(label, "@", node)
+  label <- make_label(gs, channel, node)
 
   densities <- lapply(sampleNames(cs), function(x) {
     tmp <- density(exprs(cs[[x]][, channel]))
@@ -283,32 +300,37 @@ plot_channel <- function(gs, channel, node = get_parent(gs), by = "batch") {
   dt <- do.call(rbind, densities)
 
   p <- ggplot(dt) +
-    geom_path(aes(x = x, y = y, group = sample), alpha = 0.2) +
     xlab(label) +
-    ylab("density")
+    ylab("density") +
+    theme_light()
 
+  alpha <- 0.2
   if (by %in% colnames(pd)) {
     p <- p +
-      facet_grid(by ~ .) +
-      ggtitle(sprintf("By %s", by))
+      geom_path(aes(x = x, y = y, group = sample, color = by), alpha = alpha) +
+      theme(legend.position = "top") +
+      guides(color = guide_legend(title = by, override.aes = list(alpha = 1)))
+  } else {
+    p <- p +
+      geom_path(aes(x = x, y = y, group = sample), alpha = alpha)
   }
 
   p
 }
 
 #' @importFrom ggplot2 stat_function aes_
-plot_channel_ecdf <- function(gs, channel, node = get_parent(gs), by = "batch") {
+plot_ecdf_by_channel <- function(gs, channel, node = get_parent(gs), by = "batch") {
   cs <- gs_pop_get_data(gs, node)
   pd <- pData(gs)
+  label <- make_label(gs, channel, node)
 
   ecdf_list <- lapply(sampleNames(cs), function(x) {
-    tmp <- exprs(cs[[x]][, channel])[, 1]
-    ecdf(tmp)
+    ecdf(exprs(cs[[x]][, channel])[, 1])
   })
-  channel_range <- data.frame(x = unname(range(cs[[1]][, channel])))
+  channel_range <- data.frame(x = get_range(cs, channel))
 
   if (by %in% colnames(pd)) {
-    mapping <- lapply(pd[, by], function(x) aes_(colour = x))
+    mapping <- lapply(pd[, by], function(x) aes_(color = x))
   } else {
     mapping <- lapply(sampleNames(gs), function(x) aes())
   }
@@ -318,7 +340,19 @@ plot_channel_ecdf <- function(gs, channel, node = get_parent(gs), by = "batch") 
     fun = ecdf_list, geom = "path", alpha = 0.6, mapping = mapping
   )
 
-  ggplot(channel_range, aes(x = x)) + stat_list + xlab(channel) + ylab("F(x)")
+  p <- ggplot(channel_range, aes(x = x)) +
+    stat_list +
+    xlab(label) +
+    ylab("F(x)") +
+    theme_light()
+
+  if (by %in% colnames(pd)) {
+    p <- p +
+      theme(legend.position = "top") +
+      guides(color = guide_legend(title = by, override.aes = list(alpha = 1)))
+  }
+
+  p
 }
 
 #' @importFrom stats density
@@ -367,13 +401,13 @@ plot_markers <- function(gs) {
   p +
     theme_light() +
     theme(legend.position = "top") +
-    guides(colour = guide_legend(override.aes = list(alpha = 1)))
+    guides(color = guide_legend(override.aes = list(alpha = 1)))
 }
 
 #' @importFrom flowWorkspace gh_get_pop_paths
 #' @importFrom flowCore exprs
 #' @importFrom ggplot2 geom_density stat
-plot_density <- function(gh, channel) {
+plot_density_by_gate <- function(gh, channel) {
   gates <- gh_get_pop_paths(gh, path = 1)
 
   s <- lapply(gates, function(gate) {
@@ -463,8 +497,8 @@ save_marker_plots <- function(gs, output_dir) {
   filename
 }
 
-save_marker_plots_by_marker <- function(gs, marker, output_dir) {
-  catf(sprintf(">> Saving marker plot of %s", marker))
+save_density_plots_by_marker <- function(gs, marker, output_dir) {
+  catf(sprintf(">> Saving density plot of %s", marker))
 
   output_dir <- file.path(output_dir, "markers")
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
@@ -472,14 +506,14 @@ save_marker_plots_by_marker <- function(gs, marker, output_dir) {
   marker_channel <- paste0(marker, "_", names(marker))
   filename <- sprintf("%s/%s.png", output_dir, gsub("/", "_", marker_channel))
   catf(sprintf(">> Saving QC plot of %s at the terminal node...", marker_channel))
-  p <- plot_marker(gs, marker)
+  p <- plot_density_by_marker(gs, marker)
   suppressWarnings(ggsave(filename, p, dpi = 80))
 
   filename
 }
 
-save_density_plots_by_marker <- function(gs, marker, output_dir) {
-  catf(sprintf(">> Saving desnity plot of %s", marker))
+save_density_plots_by_gate <- function(gs, marker, output_dir) {
+  catf(sprintf(">> Saving desnity plot of %s by gate", marker))
 
   marker_channel <- paste0(marker, "_", names(marker))
   output_dir <- file.path(output_dir, "density", marker_channel)
@@ -487,7 +521,7 @@ save_density_plots_by_marker <- function(gs, marker, output_dir) {
 
   sample_names <- sampleNames(gs)
   sapply(sample_names, function(x) {
-    p <- plot_density(gs[[x]], names(marker))
+    p <- plot_density_by_gate(gs[[x]], names(marker))
     filename <- file.path(output_dir, paste0(x, ".png"))
     suppressWarnings(ggsave(filename, p, dpi = 80))
 
