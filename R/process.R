@@ -49,11 +49,11 @@ summarize_study <- function(study, input_dir, remove_dups = TRUE, standardize_ma
   }
 
   # summarize files
-  catf(sprintf(">> There are %s fcs files in %s...", nrow(files), study))
+  catf(sprintf("There are %s fcs files in %s", nrow(files), study))
 
   # read headers and summarize panels
   map <- DATA[[study]]$map
-  catf(">> Reading in fcs headers...")
+  catf("Reading in fcs headers")
   headers <- mclapply(files$filePath, function(file) read.FCSheader(file, channel_alias = map), mc.cores = detect_cores())
 
   files$tot <- sapply(headers, function(x) x[[1]]["$TOT"])
@@ -120,7 +120,7 @@ summarize_study <- function(study, input_dir, remove_dups = TRUE, standardize_ma
 
   # how many gating sets will be created
   # by panels, sample type, measurement technique, experiment accession
-  catf(sprintf(">> There are %s panel(s)...", length(ps)))
+  catf(sprintf("There are %s panel(s)", length(ps)))
   panels_clean <- sapply(strsplit(ps, "; "), function(x) {
     if (length(x) == 0) {
       ""
@@ -142,7 +142,7 @@ process_panel <- function(files, debug_dir = NULL) {
   stopifnot(length(study) == 1, length(panel) == 1)
 
   catf(paste(rep("=", times = 80), collapse = ""))
-  catf(sprintf(">> Processing %s fcs files for this panel...", nrow(files)))
+  catf(sprintf("Processing %s fcs files for this panel", nrow(files)))
   catf(paste(strsplit(panel, split = "; ")[[1]], collapse = "\n"))
 
   # load files
@@ -173,7 +173,7 @@ process_panel <- function(files, debug_dir = NULL) {
 #' @importFrom flowWorkspace load_cytoset_from_fcs cytoset colnames<-
 #' @importFrom cytoqc cqc_load_fcs cqc_check cqc_match cqc_match_update cqc_match_remove cqc_fix
 create_cytoset <- function(filePath, study, debug_dir = NULL) {
-  catf(">> Reading files and creating a cytoset...")
+  catf("Reading files and creating a cytoset")
 
   cs <- suppressMessages(cqc_load_fcs(
     filePath,
@@ -263,7 +263,7 @@ custom_match_cytoset <- function(check_result, max.distance, channel_ref, map) {
 
 #' @importFrom flowWorkspace phenoData phenoData<- cf_keyword_insert
 merge_metadata <- function(cs, files, study, debug_dir = NULL) {
-  catf(">> Merging metedata...")
+  catf("Merging metedata")
   phenoData(cs)$study_accession <- files[phenoData(cs)$name, ]$studyAccession
   phenoData(cs)$participant_id <- files[phenoData(cs)$name, ]$subjectAccession
   phenoData(cs)$age_reported <- files[phenoData(cs)$name, ]$ageEvent
@@ -293,7 +293,7 @@ merge_metadata <- function(cs, files, study, debug_dir = NULL) {
 
 #' @importFrom flowCore description
 merge_batch <- function(cs, study, debug_dir = NULL) {
-  catf(">> Merging batch column...")
+  catf("Merging batch column")
   keyword <- DATA[[study]]$batch
 
   if (!is.null(keyword)) {
@@ -317,7 +317,7 @@ merge_batch <- function(cs, study, debug_dir = NULL) {
 
 #' @importFrom flowWorkspace GatingSet
 create_gs <- function(cs, study, debug_dir = NULL) {
-  catf(">> Creating a gating set...")
+  catf("Creating a gating set")
   gs <- GatingSet(cs)
 
   save_debug(gs, "create_gs", debug_dir)
@@ -328,7 +328,7 @@ create_gs <- function(cs, study, debug_dir = NULL) {
 #' @importFrom flowWorkspace markernames markernames<-
 #' @importFrom methods is
 standardize_markernames <- function(gs, study, debug_dir = NULL) {
-  catf(">> Standardizing marker names...")
+  catf("Standardizing marker names")
 
   # get current marker names and name them with channel names
   names_gs <- markernames(gs)
@@ -356,7 +356,7 @@ standardize_markernames <- function(gs, study, debug_dir = NULL) {
 #' @importFrom flowWorkspace gs_pop_get_data compensate lapply
 #' @importFrom flowCore spillover
 compensate_gs <- function(gs, study, debug_dir = NULL) {
-  catf(">> Applying compensation...")
+  catf("Applying compensation")
   cs <- gs_pop_get_data(gs)
   cols <- colnames(gs)
   comp <- lapply(cs, function(x) {
@@ -378,7 +378,7 @@ compensate_gs <- function(gs, study, debug_dir = NULL) {
 # https://onlinelibrary.wiley.com/doi/full/10.1002/cyto.a.23030
 #' @importFrom flowWorkspace colnames transform transformerList
 transform_gs <- function(gs, study, debug_dir = NULL) {
-  catf(">> Applying transformation (inverse hyperbolic sine with cofactor = 150)...")
+  catf("Applying transformation (inverse hyperbolic sine with cofactor = 150)")
   channels <- colnames2(gs)
   if (length(channels) > 0) {
     cofactor <- 150
@@ -398,12 +398,12 @@ gate_gs <- function(gs, study, debug_dir = NULL) {
   file <- system.file(filePath, package = "HIPCCyto")
 
   if (file != "") {
-    catf(sprintf(">> Applying gating template (%s)...", file))
+    catf(sprintf("Applying gating template (%s)", file))
     gt <- gatingTemplate(file)
     gt_gating(gt, gs, mc.cores = detect_cores(), parallel_type = "multicore")
   } else {
-    catf(">> Gating template does not exist for this study...")
-    catf(">> Applying default gating methods...")
+    catf("Gating template does not exist for this study")
+    catf("Applying default gating methods")
     apply_quadrant_gate(gs, study)
     apply_singlet_gate(gs, "FSC")
     apply_singlet_gate(gs, "SSC")
@@ -425,9 +425,9 @@ gate_gs <- function(gs, study, debug_dir = NULL) {
 save_debug <- function(obj, func, debug_dir = NULL) {
   if (!is.null(debug_dir)) {
     path <- tempfile(paste0(func, "_"), debug_dir)
-    catf(sprintf(">> Storing intermediate file to %s for debugging...", path))
+    catf(sprintf("Storing intermediate file to %s for debugging", path))
     if (is(obj, "cytoset")) {
-      save_cytoset(obj, path)
+      save_cytoset(obj, path, backend_opt = "copy")
     } else if (is(obj, "GatingSet")) {
       save_gs(obj, path, backend_opt = "copy")
     } else {

@@ -20,7 +20,7 @@ impute_gates <- function(gs_dir, samples_to_impute, by_batch = TRUE, method = "n
   gate <- "Lymphocytes"
 
   # save original gates, plot, and QC report
-  catf(">> Backing up original gates and QC files...")
+  catf("Backing up original gates and QC files")
   original_gates <- gs_pop_get_gate(gs, gate)
   saveRDS(original_gates, file.path(gs_dir, sprintf("%s_original.RDS", gate)))
   file.copy(file.path(gs_dir, "markers.png"), file.path(gs_dir, "markers_original.png"))
@@ -34,17 +34,17 @@ impute_gates <- function(gs_dir, samples_to_impute, by_batch = TRUE, method = "n
   }
 
   # impute gates
-  catf(sprintf(">> Imputing %s gate by '%s' method...", gate, method))
+  catf(sprintf("Imputing %s gate by '%s' method", gate, method))
   imputed <- lapply(batch_groups, function(batch_pd) {
     if (!is.null(batch_pd$batch)) {
-      catf(sprintf(">> batch: %s", unique(batch_pd$batch)))
+      catf(sprintf("batch: %s", unique(batch_pd$batch)))
     }
 
     if (all(batch_pd$to_impute == TRUE)) {
-      catf(">> No template gates remaining to use for imputation...")
+      catf("No template gates remaining to use for imputation")
       return()
     } else if (all(batch_pd$to_impute == FALSE)) {
-      catf(">> No samples to impute...")
+      catf("No samples to impute")
       return()
     }
 
@@ -58,12 +58,12 @@ impute_gates <- function(gs_dir, samples_to_impute, by_batch = TRUE, method = "n
   })
   pd$imputed <- pd$name %in% unlist(imputed)
   pData(gs) <- pd
-  catf(sprintf(">> %s out of %s samples were imputed in %s gate...", sum(pd$imputed), sum(pd$to_impute), gate))
-  catf(">> Recomputing the cell events...")
+  catf(sprintf("%s out of %s samples were imputed in %s gate", sum(pd$imputed), sum(pd$to_impute), gate))
+  catf("Recomputing the cell events")
   recompute(gs)
 
   # re-save gating set and QC files
-  catf(">> Saving new gates and creating new QC files...")
+  catf("Saving new gates and creating new QC files")
   save_gs(gs, path = file.path(gs_dir, "gs"))
   render_comparison_report(gs_dir)
   render_qc_report(gs_dir)
@@ -149,7 +149,7 @@ recover_original_gates <- function(gs_dir) {
   pData(gs)$to_impute <- NULL
   pData(gs)$imputed <- NULL
 
-  catf(">> Recovering origianl gates and QC files...")
+  catf("Recovering origianl gates and QC files")
   save_gs(gs, path = file.path(gs_dir, "gs"))
   file.copy(file.path(gs_dir, "markers_original.png"), file.path(gs_dir, "markers.png"))
   file.copy(file.path(gs_dir, "QC_original.html"), file.path(gs_dir, "QC.html"))
@@ -159,10 +159,10 @@ recover_original_gates <- function(gs_dir) {
 
 #' @importFrom rmarkdown render
 render_comparison_report <- function(gs_dir) {
-  catf(">> Compiling gate comparison report...")
+  catf("Compiling gate comparison report")
   file_path <- file.path(gs_dir, "comparison.html")
 
-  catf(sprintf(">> output_file: ", file_path))
+  catf(sprintf("output_file: %s", file_path))
   input <- file.path(gs_dir, "comparison.Rmd")
   file.copy(system.file("qc/comparison.Rmd", package = "HIPCCyto"), input, overwrite = TRUE)
   render(

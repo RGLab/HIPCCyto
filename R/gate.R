@@ -1,13 +1,13 @@
 # gate functions ---------------------------------------------------------------
 #' @importFrom openCyto register_plugins
 apply_quadrant_gate <- function(gs, study) {
-  catf(">> Applying quadrant gate...")
+  catf("Applying quadrant gate")
   register_plugins(fun = .quadrantGate, methodName = "quadrantGate")
 
   gating_args <- "quadrant = 1"
   toRemove <- DATA[[study]]$toRemove
   if (!is.null(toRemove)) {
-    catf(sprintf(">> Removing %s%% of FSC-A and SSC-A", signif(toRemove, 3) * 100))
+    catf(sprintf("Removing %s%% of FSC-A and SSC-A", signif(toRemove, 3) * 100))
     gating_args <- sprintf("%s, toRemove = %s", gating_args, toRemove)
   }
 
@@ -27,7 +27,7 @@ apply_singlet_gate <- function(gs, channel) {
   A <- sprintf("%s-A", channel)
   H <- sprintf("%s-H", channel)
   if (H %in% colnames(gs)) {
-    catf(sprintf(">> Applying singlet gate by scatter channel (%s)...", alias))
+    catf(sprintf("Applying singlet gate by scatter channel (%s)", alias))
     gs_add_gating_method(
       gs = gs,
       alias = alias,
@@ -44,7 +44,7 @@ apply_singlet_gate <- function(gs, channel) {
 #' @importFrom flowCore exprs
 #' @importFrom stats density
 apply_nondebris_gate <- function(gs, study) {
-  catf(">> Applying non-debris gate by forward scatter (Nondebris)...")
+  catf("Applying non-debris gate by forward scatter (Nondebris)")
 
   gates <- lapply(sampleNames(gs), function(x) {
     fsc <- exprs(gh_pop_get_data(gs[[x]], get_parent(gs)))[, "FSC-A"]
@@ -94,10 +94,10 @@ apply_live_gate <- function(gs, study) {
     collapseDataForGating <- !is.null(pData(gs)$batch)
     groupBy <- ifelse(collapseDataForGating, "batch", NA)
 
-    catf(sprintf(">> Applying live/dead gate with %s (%s) by %s (Live)...", gating_method, gating_args, live))
+    catf(sprintf("Applying live/dead gate with %s (%s) by %s (Live)", gating_method, gating_args, live))
 
     if (collapseDataForGating) {
-      catf(sprintf(">> Collapsing data for gating by %s...", groupBy))
+      catf(sprintf("Collapsing data for gating by %s", groupBy))
     }
 
     gs_add_gating_method(
@@ -120,7 +120,7 @@ apply_lymphocyte_gate <- function(gs, study, debug_dir = NULL) {
   targets <- compute_targets(gs, flowClusters, study)
   gates <- create_fcEllipsoidGate(flowClusters, targets)
 
-  catf(">> Applying lymphocytes gate with flowClust by forward and side scatters (Lymphocytes)...")
+  catf("Applying lymphocytes gate with flowClust by forward and side scatters (Lymphocytes)")
   gs_pop_add(
     gs = gs,
     gate = gates,
@@ -159,10 +159,10 @@ get_live_marker <- function(gs) {
   live <- grep("^(L|l)ive|LD|(V|v)iability|L/D$", markernames(gs), value = TRUE)
 
   if (length(live) == 0) {
-    catf(">> There is no viability dye channel in this gating set...")
+    catf("There is no viability dye channel in this gating set")
     return(NULL)
   } else if (length(live) > 1) {
-    catf(">> There are more than one viability dye channel in this gating set...")
+    catf("There are more than one viability dye channel in this gating set")
     catf(paste(live, collapse = ", "))
   }
 
@@ -191,11 +191,11 @@ flowclust <- function(x) {
 #' @importFrom flowCore exprs
 #' @importFrom slurmR slurm_available Slurm_lapply opts_slurmR
 compute_flowClusters <- function(gs, debug_dir = NULL) {
-  catf(">> Computing for the optimal number of clusters (K) for each sample...")
+  catf("Computing for the optimal number of clusters (K) for each sample")
   cs <- gs_pop_get_data(gs, get_parent(gs))
 
   if (slurm_available()) {
-    catf(">> Submitting flowClust jobs to slurm...")
+    catf("Submitting flowClust jobs to slurm")
     ex <- lapply(sampleNames(cs), function(x) exprs(cs[[x, returnType = "cytoframe"]])[, c("FSC-A", "SSC-A")])
     names(ex) <- sampleNames(cs)
     if (is.null(debug_dir)) {
@@ -235,7 +235,7 @@ select_cluster <- function(fitted_means, target) {
 #' @importFrom flowClust getEstimates
 #' @importFrom withr with_options
 find_target <- function(flowClusters) {
-  catf(">> Computing the target location of the lymphocyte clusters...")
+  catf("Computing the target location of the lymphocyte clusters")
   mus <- lapply(flowClusters, function(x) {
     est <- getEstimates(x)
     est$locations[which.max(est$proportions), ]
@@ -251,7 +251,7 @@ find_target <- function(flowClusters) {
   target <- est_mus$locations[which.max(est_mus$proportions), ]
 
   print(est_mus)
-  catf(sprintf(">> Selecting FSC-A = %s and SSC-A = %s as target location...", target[1], target[2]))
+  catf(sprintf("Selecting FSC-A = %s and SSC-A = %s as target location", target[1], target[2]))
 
   targets <- rep_len(list(target), length(flowClusters))
   names(targets) <- names(flowClusters)
@@ -262,7 +262,7 @@ find_target <- function(flowClusters) {
 compute_targets <- function(gs, flowClusters, study) {
   target <- DATA[[study]]$target
   if (!is.null(target)) {
-    catf(sprintf(">> Using the predetermined target location (FSC-A = %s and SSC-A = %s)...", target[1], target[2]))
+    catf(sprintf("Using the predetermined target location (FSC-A = %s and SSC-A = %s)", target[1], target[2]))
     targets <- rep_len(list(target), length(flowClusters))
     names(targets) <- names(flowClusters)
     return(targets)

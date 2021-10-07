@@ -18,7 +18,7 @@
 #' @export
 save_gating_sets <- function(gsl, output_dir, qc = TRUE) {
   gsl_path <- lapply(seq_len(length(gsl)), function(i) {
-    catf(sprintf(">> Saving gating set #%s...", i))
+    catf(sprintf("Saving gating set #%s", i))
     gs <- gsl[[i]]
     gs_accession <- paste0("gs", i)
 
@@ -29,8 +29,8 @@ save_gating_sets <- function(gsl, output_dir, qc = TRUE) {
     }
     dir.create(gs_path, showWarnings = FALSE, recursive = TRUE)
 
-    catf(sprintf(">> gs_path = %s", gs_path))
-    save_gs(gs, gs_path, overwrite = TRUE, cdf = "copy")
+    catf(sprintf("gs_path = %s", gs_path))
+    save_gs(gs, gs_path, overwrite = TRUE, backend_opt = "copy")
 
     if (isTRUE(qc)) {
       try(create_qc_files(gs, gs_accession, path))
@@ -48,7 +48,7 @@ save_gating_sets <- function(gsl, output_dir, qc = TRUE) {
 }
 
 create_qc_files <- function(gs, gs_accession, output_dir, full = FALSE) {
-  catf(">> Creating QC summary and plots...")
+  catf("Creating QC summary and plots")
 
   save_gating_set_summary(gs, gs_accession, output_dir)
   save_spillover_heatmaps(gs, output_dir)
@@ -98,7 +98,7 @@ summarize_gating_set <- function(gs, gs_accession) {
 }
 
 save_gating_set_summary <- function(gs, gs_accession, output_dir) {
-  catf(">> Saving gating set summary...")
+  catf("Saving gating set summary")
 
   summary <- summarize_gating_set(gs, gs_accession)
   json <- toJSON(summary, pretty = TRUE, auto_unbox = TRUE)
@@ -122,12 +122,12 @@ qc_gates <- function(gs, gate) {
     } else if (n == 2) {
       p <- qc_2d_gates(gs, gate)
     } else {
-      stop("Can't have more than 2 channels...")
+      stop("Can't have more than 2 channels")
     }
   } else if (is(gt, "ellipsoidGate") | is(gt, "polygonGate")) {
     p <- qc_polygon_gates(gs, gate)
   } else {
-    stop("Gate should be one of `rectagleGate`, `ellipsoidGate` or `polygonGate` object...")
+    stop("Gate should be one of `rectagleGate`, `ellipsoidGate` or `polygonGate` object")
   }
 
   p
@@ -429,7 +429,7 @@ plot_density_by_gate <- function(gh, channel) {
 #' @importFrom gtools mixedorder
 #' @importFrom pheatmap pheatmap
 save_spillover_heatmaps <- function(gs, output_dir) {
-  catf(">> Saving spillover matrix heatmaps...")
+  catf("Saving spillover matrix heatmaps")
 
   output_dir <- file.path(output_dir, "spillover")
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
@@ -455,7 +455,7 @@ save_spillover_heatmaps <- function(gs, output_dir) {
 }
 
 save_gate_plots <- function(gs, output_dir) {
-  catf(">> Saving QC gate plots...")
+  catf("Saving QC gate plots")
 
   output_dir <- file.path(output_dir, "gates")
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
@@ -473,7 +473,7 @@ save_gate_plots <- function(gs, output_dir) {
 #' @importFrom ggcyto autoplot ggcyto_arrange
 #' @importFrom ggplot2 ggsave
 save_gate_plots_by_gate <- function(gs, gate, output_dir) {
-  catf(sprintf(">> Saving QC plot of %s gate...", gate))
+  catf(sprintf("Saving QC plot of %s gate", gate))
 
   output_dir <- file.path(output_dir, "gates", gate)
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
@@ -488,7 +488,7 @@ save_gate_plots_by_gate <- function(gs, gate, output_dir) {
 }
 
 save_marker_plots <- function(gs, output_dir) {
-  catf(">> Saving QC marker plots...")
+  catf("Saving QC marker plots")
 
   p <- plot_markers(gs)
   filename <- file.path(output_dir, "markers.png")
@@ -498,14 +498,14 @@ save_marker_plots <- function(gs, output_dir) {
 }
 
 save_density_plots_by_marker <- function(gs, marker, output_dir) {
-  catf(sprintf(">> Saving density plot of %s", marker))
+  catf(sprintf("Saving density plot of %s", marker))
 
   output_dir <- file.path(output_dir, "markers")
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
   marker_channel <- paste0(marker, "_", names(marker))
   filename <- sprintf("%s/%s.png", output_dir, gsub("/", "_", marker_channel))
-  catf(sprintf(">> Saving QC plot of %s at the terminal node...", marker_channel))
+  catf(sprintf("Saving QC plot of %s at the terminal node", marker_channel))
   p <- plot_density_by_marker(gs, marker)
   suppressWarnings(ggsave(filename, p, dpi = 80))
 
@@ -513,7 +513,7 @@ save_density_plots_by_marker <- function(gs, marker, output_dir) {
 }
 
 save_density_plots_by_gate <- function(gs, marker, output_dir) {
-  catf(sprintf(">> Saving desnity plot of %s by gate", marker))
+  catf(sprintf("Saving desnity plot of %s by gate", marker))
 
   marker_channel <- paste0(marker, "_", names(marker))
   output_dir <- file.path(output_dir, "density", marker_channel)
@@ -533,10 +533,10 @@ save_density_plots_by_gate <- function(gs, marker, output_dir) {
 # report rendering functions ---------------------------------------------------
 #' @importFrom rmarkdown render
 render_qc_report <- function(gs_dir) {
-  catf(">> Compiling QC report...")
+  catf("Compiling QC report")
   file_path <- file.path(gs_dir, "QC.html")
 
-  catf(sprintf(">> output_file: ", file_path))
+  catf(sprintf("output_file: %s", file_path))
   input <- file.path(gs_dir, "QC.Rmd")
   file.copy(system.file("qc/QC.Rmd", package = "HIPCCyto"), input, overwrite = TRUE)
   render(
@@ -549,7 +549,7 @@ render_qc_report <- function(gs_dir) {
 }
 
 render_study_report <- function(study_dir) {
-  catf(">> Compiling study report...")
+  catf("Compiling study report")
 
   input <- file.path(study_dir, "study.Rmd")
   file.copy(system.file("qc/study.Rmd", package = "HIPCCyto"), input, overwrite = TRUE)
@@ -559,7 +559,7 @@ render_study_report <- function(study_dir) {
   )
 
   file_path <- file.path(study_dir, "study.html")
-  catf(sprintf(">> output_file: ", file_path))
+  catf(sprintf("output_file: %s", file_path))
 
   file_path
 }
@@ -592,7 +592,7 @@ test_outliers <- function(gs, cl = 0.99, step = 3) {
   cs <- gs_pop_get_data(gs, "Lymphocytes")
   pv <- lapply(cs, function(x) dip.test(exprs(x)[, "FSC-A"])$p.value)
   outliers <- names(which(pv < (1 - cl[1])))
-  catf(">> step #1: dip test")
+  catf("step #1: dip test")
   catf(outliers)
   if (step == 1) {
     return(outliers)
@@ -616,7 +616,7 @@ test_outliers <- function(gs, cl = 0.99, step = 3) {
     sigma <- cov(mat[, 1:2])
     Z <- pointsToEllipsoid(mat[, 1:2], sigma, mu)
     inside <- ellipseInOut(Z, p = cl[2])
-    catf(">> step #2: location test")
+    catf("step #2: location test")
     catf(names(which(!inside)))
     outliers <- c(outliers, names(which(!inside)))
     if (step == 2) {
@@ -627,11 +627,11 @@ test_outliers <- function(gs, cl = 0.99, step = 3) {
     size <- mat[inside, "det"]
     res <- t.test(size, conf.level = cl[3])
     inside <- size > res$conf.int[1] & size < res$conf.int[2]
-    catf(">> step #3: size test")
+    catf("step #3: size test")
     catf(names(which(!inside)))
     outliers <- c(outliers, names(which(!inside)))
   } else {
-    catf(">> insufficient samples for steps #2 and #3")
+    catf("insufficient samples for steps #2 and #3")
   }
 
   outliers
