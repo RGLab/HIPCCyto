@@ -233,7 +233,6 @@ select_cluster <- function(fitted_means, target) {
 }
 
 #' @importFrom flowClust getEstimates
-#' @importFrom withr with_options
 find_target <- function(flowClusters) {
   catf("Computing the target location of the lymphocyte clusters")
   mus <- lapply(flowClusters, function(x) {
@@ -242,10 +241,7 @@ find_target <- function(flowClusters) {
   })
   mus <- do.call(rbind, mus)
   colnames(mus) <- c("FSC", "SSC")
-  fcl_mus <- with_options(
-    list(mc.cores = 1L),
-    flowClust(mus, K = 1:5, criterion = "ICL", trans = 0, min.count = -1, max.count = -1)
-  )
+  fcl_mus <- flowClust(mus, K = 1:5, criterion = "ICL", trans = 0, min.count = -1, max.count = -1)
   k_mus <- ifelse(length(fcl_mus@index) == 0, 1, fcl_mus@index)
   est_mus <- getEstimates(fcl_mus@.Data[[k_mus]])
   target <- est_mus$locations[which.max(est_mus$proportions), ]

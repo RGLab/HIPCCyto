@@ -318,6 +318,7 @@ plot_density_by_channel <- function(gs, channel, node = get_parent(gs), by = "ba
   p
 }
 
+#' @importFrom stats ecdf
 #' @importFrom ggplot2 stat_function aes_
 plot_ecdf_by_channel <- function(gs, channel, node = get_parent(gs), by = "batch") {
   cs <- gs_pop_get_data(gs, node)
