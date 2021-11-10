@@ -583,7 +583,6 @@ find_outliers <- function(gs, byBatch = TRUE, cl = 0.99, step = 3) {
 #' @importFrom diptest dip.test
 #' @importFrom flowCore exprs
 #' @importFrom stats cov t.test
-#' @importFrom SIBER pointsToEllipsoid ellipseInOut
 test_outliers <- function(gs, cl = 0.99, step = 3) {
   if (length(cl) == 1) {
     cl <- rep(cl, 3)
@@ -615,8 +614,8 @@ test_outliers <- function(gs, cl = 0.99, step = 3) {
 
     mu <- colMeans(mat[, 1:2])
     sigma <- cov(mat[, 1:2])
-    Z <- pointsToEllipsoid(mat[, 1:2], sigma, mu)
-    inside <- ellipseInOut(Z, p = cl[2])
+    converted <- convert_points_to_ellipsoid(mat[, 1:2], mu, sigma)
+    inside <- check_inside_ellipse(converted, p = cl[2])
     catf("step #2: location test")
     catf(names(which(!inside)))
     outliers <- c(outliers, names(which(!inside)))
@@ -636,4 +635,38 @@ test_outliers <- function(gs, cl = 0.99, step = 3) {
   }
 
   outliers
+}
+
+# ellipsoid functions adopted from SIBER ---------------------------------------
+# https://github.com/AndrewLJackson/SIBER/blob/master/R/pointsToEllipsoid.R
+# https://github.com/AndrewLJackson/SIBER/blob/master/R/ellipsoidTransform.R
+convert_points_to_ellipsoid <- function(points, mu, sigma) {
+  if (ncol(sigma) != nrow(sigma)) {
+    stop("`sigma` must be a square matrix")
+  }
+  if (ncol(points) != ncol(sigma)) {
+    stop("number of columns in `points` must be of same dimension as `sigma`")
+  }
+  if (length(mu) != ncol(sigma)) {
+    stop("length of `mu` must be of same dimension as `sigma`")
+  }
+
+  # inverse of sigma
+  eig <- eigen(sigma)
+  sigma_inverse <- eig$vectors %*% diag(sqrt(eig$values)) %*% t(eig$vectors)
+
+  # transform the points
+  t(apply(points, 1, function(point) solve(sigma_inverse, point - mu)))
+}
+
+# https://github.com/AndrewLJackson/SIBER/blob/master/R/ellipseInOut.R
+#' @importFrom stats qchisq
+check_inside_ellipse <- function(points, p = 0.95, radius = NULL) {
+  # if radius is NULL, calculate it based on p
+  if (is.null(radius)) {
+    radius <- qchisq(p, df = ncol(points))
+  }
+
+  # determine if each point is inside this radius or not
+  rowSums(points ^ 2) < radius
 }
