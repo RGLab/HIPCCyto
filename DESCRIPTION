@@ -19,7 +19,6 @@ Imports:
     flowClust,
     ggcyto,
     cytoqc,
-    flowIncubator,
     assertthat,
     gtools,
     jsonlite,

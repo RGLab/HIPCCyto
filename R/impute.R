@@ -131,13 +131,70 @@ impute_by_consensus <- function(gs, samples_to_impute, gate) {
   samples_to_impute
 }
 
-#' @importFrom flowIncubator nearestSamples regateNearestSamples
-impute_by_nearest <- function(gs, samples_to_impute, gate) {
+impute_by_nearest <- function(gs, samples_to_impute, node) {
   passed <- sampleNames(gs)[!sampleNames(gs) %in% samples_to_impute]
-  res <- nearestSamples(gs, node = gate, failed = samples_to_impute, passed = passed)
-  regateNearestSamples(gs, res, gate)
+  nearest_samples <- find_nearest_samples(gs, node, samples_to_impute, passed = passed)
+  regate_nearest_samples(gs, nearest_samples, node)
 
   samples_to_impute
+}
+
+find_nearest_samples <- function(gs, node, failed, passed = NULL) {
+  # get samples that do not fail the QA check
+  failed <- as.vector(failed)
+  samples <- sampleNames(gs)
+  failed_ind <- match(failed, samples)
+  if (is.null(passed)) {
+    passed <- samples[-c(failed_ind)]
+  }
+
+  sapply(failed, function(target) {
+    catf(sprintf("Finding reference sample for '%s'", target))
+    find_nearest_sample(gs, node, target, passed)
+  })
+}
+
+find_nearest_sample <- function(gs, node, target, source) {
+  target_gate <- gh_pop_get_gate(gs[[target]], node)
+  params <- parameters(target_gate)
+  n_dim <- length(params)
+
+  parent_node <- gs_pop_get_parent(gs, node)
+  parent_cs <- gs_pop_get_data(gs, parent_node)[, params]
+
+  target_cf <- parent_cs[[target]]
+  target_expr <- exprs(target_cf)
+
+  if (n_dim > 2) {
+    stop("Imputing gate on more than 2 dimensions is not supported yet!")
+  }
+
+  dist_vec <- lapply(source, function(this_sample) {
+    this_cf <- parent_cs[[this_sample]]
+    this_expr <- exprs(this_cf)
+
+    this_dist <- sapply(seq_len(n_dim), function(i) {
+      ks.test(target_expr[, i], this_expr[, i])$statistic[[1]]
+    })
+    this_dist <- sum(this_dist)
+
+    this_dist
+  })
+
+  source[which.min(dist_vec)]
+}
+
+regate_nearest_samples <- function (gs, samples, node) {
+  catf(sprintf("Regating '%s'", node))
+  for (i in seq_along(samples)) {
+    bad <- names(samples)[i]
+    good <- samples[i]
+    catf(sprintf("Replacing '%s' with '%s'", bad, good))
+    good_gate <- gs_pop_get_gate(gs[good], node)
+    names(good_gate) <- bad
+    gs_pop_set_gate(gs[bad], node, good_gate)
+    recompute(gs[bad], node)
+  }
 }
 
 #' @importFrom flowWorkspace load_gs gs_pop_set_gate pData<- save_gs
